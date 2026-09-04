@@ -192,8 +192,9 @@ export default function App() {
         )}
       </main>
 
-      <footer className="font-mono px-5 py-4 text-center text-base uppercase tracking-widest text-neutral-600">
-        Names are generated locally and aren't uploaded. One name, one monster, forever.
+      <footer className="font-mono flex flex-col sm:flex-row items-center justify-between gap-2 px-5 py-4 text-center sm:text-left text-base uppercase tracking-widest text-neutral-600">
+        <span>Names are generated locally and aren't uploaded. One name, one monster, forever.</span>
+        <span className="shrink-0 text-neutral-500">Made by Drane</span>
       </footer>
 
       {toast && <div role="status" className="font-pixel fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 border-2 border-white bg-black px-4 py-3 text-[10px] uppercase tracking-widest text-white">{toast}</div>}
