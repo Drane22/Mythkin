@@ -1,11 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import * as THREE from "three";
-import type { MonsterGenotype } from "../generator/types";
-import { buildMonster, type AnimRig } from "./buildMonster";
-import { applyAnimation } from "./animate";
-import { paintBackground } from "./background";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import * as THREE from 'three';
+import type { MonsterGenotype } from '../generator/types';
+import { buildMonster, type AnimRig } from './buildMonster';
+import { applyAnimation, type ReactionState } from './animate';
+import { paintBackground } from './background';
 
-export const RENDER_RES = 168; // internal pixel resolution (square)
+export const RENDER_RES = 168;
 const BG_RES = 96;
 
 export interface MonsterCanvasHandle {
@@ -24,7 +24,13 @@ interface Props {
   className?: string;
 }
 
-const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+type Mood = 'calm' | 'irritated' | 'hostile' | 'enraged';
+interface MoodState { mood: Mood; anger: number; hits: number }
+interface ReactionRuntime extends ReactionState { lastHit: number; hits: number; }
+
+const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const moodFor = (anger: number): Mood => anger >= 0.75 ? 'enraged' : anger >= 0.5 ? 'hostile' : anger > 0 ? 'irritated' : 'calm';
+const initialReaction = (): ReactionRuntime => ({ age: 0, intensity: 0, anger: 0, direction: 1, lastHit: -Infinity, hits: 0 });
 
 export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function MonsterCanvas(
   { genotype, summonToken, onAssembled, showBackground = true, className },
@@ -32,32 +38,47 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
 ) {
   const glRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
+  const moodTimer = useRef<number>(0);
   const [webglError, setWebglError] = useState(false);
+  const [moodState, setMoodState] = useState<MoodState>({ mood: 'calm', anger: 0, hits: 0 });
   const stateRef = useRef<{
     renderer?: THREE.WebGLRenderer; scene?: THREE.Scene; camera?: THREE.PerspectiveCamera;
-    rig?: AnimRig; dispose?: () => void; startTime: number; assembled: boolean; time: number;
-  }>({ startTime: 0, assembled: false, time: 0 });
+    rig?: AnimRig; dispose?: () => void; startTime: number; assembled: boolean; time: number; reaction: ReactionRuntime;
+  }>({ startTime: 0, assembled: false, time: 0, reaction: initialReaction() });
   const onAssembledRef = useRef(onAssembled);
+  const genotypeRef = useRef(genotype);
   onAssembledRef.current = onAssembled;
+  genotypeRef.current = genotype;
+
+  const triggerReaction = useCallback((direction: number) => {
+    const s = stateRef.current;
+    if (!s.assembled || !s.rig) return;
+    const now = s.time;
+    const recent = now - s.reaction.lastHit < 2.3;
+    const anger = Math.min(1, s.reaction.anger + (recent ? 0.2 : 0.16));
+    const hits = recent ? Math.min(5, s.reaction.hits + 1) : 1;
+    s.reaction = { age: 0, intensity: 1, anger, direction, lastHit: now, hits };
+    setMoodState({ mood: moodFor(anger), anger, hits });
+    window.clearTimeout(moodTimer.current);
+    moodTimer.current = window.setTimeout(() => setMoodState({ mood: 'calm', anger: 0, hits: 0 }), 3400);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     capture: () => {
       const s = stateRef.current;
       if (!s.renderer || !s.scene || !s.camera || !s.rig) return null;
-      // settle the pose: fully assembled, eyes open
-      applyAnimation(s.rig, genotypeRef.current.idle, { assemble: 1, time: 0.25, reducedMotion: true });
+      applyAnimation(s.rig, genotypeRef.current.idle, { assemble: 1, time: s.time, reducedMotion: true, reaction: { age: 1, intensity: 0, anger: 0, direction: 1 } });
       s.rig.eyes.forEach((e) => (e.group.scale.y = 1));
       s.renderer.render(s.scene, s.camera);
-      const out = document.createElement("canvas");
+      const out = document.createElement('canvas');
       out.width = RENDER_RES; out.height = RENDER_RES;
-      const ctx = out.getContext("2d")!;
-      ctx.drawImage(s.renderer.domElement, 0, 0);
+      out.getContext('2d')!.drawImage(s.renderer.domElement, 0, 0);
       return out;
     },
     captureBackground: () => {
-      const out = document.createElement("canvas");
+      const out = document.createElement('canvas');
       out.width = BG_RES; out.height = BG_RES;
-      paintBackground(out.getContext("2d")!, BG_RES, BG_RES, genotype);
+      paintBackground(out.getContext('2d')!, BG_RES, BG_RES, genotype);
       return out;
     },
   }), [genotype]);
@@ -66,18 +87,17 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
   useEffect(() => {
     const host = glRef.current;
     if (!host) return;
-    const canvas = document.createElement("canvas");
+    const canvas = document.createElement('canvas');
     canvas.width = RENDER_RES; canvas.height = RENDER_RES;
-    canvas.className = "pixelated absolute inset-0 h-full w-full";
-    canvas.setAttribute("aria-hidden", "true");
+    canvas.className = 'pixelated absolute inset-0 h-full w-full';
+    canvas.setAttribute('aria-hidden', 'true');
     host.appendChild(canvas);
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, preserveDrawingBuffer: true, powerPreference: "low-power" });
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, preserveDrawingBuffer: true, powerPreference: 'low-power' });
     } catch {
       setWebglError(true);
       canvas.remove();
-      // still reveal the identity text so the experience degrades gracefully
       window.setTimeout(() => onAssembledRef.current?.(), 400);
       return;
     }
@@ -104,7 +124,12 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
       if (s.rig) {
         const dur = reduced ? 300 : 1500;
         const assemble = s.startTime === 0 ? 1 : Math.min(1, (now - s.startTime) / dur);
-        applyAnimation(s.rig, genotypeRef.current.idle, { assemble, time: s.time, reducedMotion: reduced });
+        if (s.reaction.lastHit > -Infinity) s.reaction.anger = Math.max(0, s.reaction.anger - dt * 0.07);
+        const reaction = s.reaction.lastHit > -Infinity ? {
+          age: Math.max(0, s.time - s.reaction.lastHit), intensity: Math.max(0, 1 - Math.max(0, s.time - s.reaction.lastHit) / 0.72),
+          anger: s.reaction.anger, direction: s.reaction.direction,
+        } : undefined;
+        applyAnimation(s.rig, genotypeRef.current.idle, { assemble, time: s.time, reducedMotion: reduced, reaction });
         if (assemble >= 1 && !s.assembled) { s.assembled = true; onAssembledRef.current?.(); }
         renderer.render(scene, camera);
       }
@@ -112,6 +137,7 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(moodTimer.current);
       s.dispose?.();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -119,9 +145,6 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
       s.renderer = undefined; s.rig = undefined;
     };
   }, []);
-
-  const genotypeRef = useRef(genotype);
-  genotypeRef.current = genotype;
 
   // build creature whenever genotype changes; restart summon when token changes
   useEffect(() => {
@@ -133,21 +156,38 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     s.scene.add(rig.root);
     s.startTime = performance.now();
     s.assembled = false;
-    // background
+    s.reaction = initialReaction();
+    setMoodState({ mood: 'calm', anger: 0, hits: 0 });
     const bg = bgRef.current;
-    if (bg) { bg.width = BG_RES; bg.height = BG_RES; paintBackground(bg.getContext("2d")!, BG_RES, BG_RES, genotype); }
+    if (bg) { bg.width = BG_RES; bg.height = BG_RES; paintBackground(bg.getContext('2d')!, BG_RES, BG_RES, genotype); }
   }, [genotype, summonToken]);
 
+  const onPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const direction = event.clientX < rect.left + rect.width / 2 ? 1 : -1;
+    triggerReaction(direction);
+  };
+  const onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    triggerReaction(1);
+  };
+  const moodBars = Math.ceil(moodState.anger * 5);
+
   return (
-    <div className={`relative aspect-square w-full overflow-hidden ${className ?? ""}`} role="img"
+    <div className={`relative aspect-square w-full overflow-hidden ${className ?? ''}`} role="img" data-mood={moodState.mood}
       aria-label={`${genotype.identity.generatedName}, ${genotype.identity.classification.toLowerCase()}: a pixel creature with ${genotype.anatomy.eyes.count} eyes, ${genotype.anatomy.armCount} arms and ${genotype.anatomy.legCount} legs.`}>
-      <canvas ref={bgRef} className="pixelated absolute inset-0 h-full w-full" style={{ opacity: showBackground ? 1 : 0 }} aria-hidden />
+      <canvas ref={bgRef} className="pixelated absolute inset-0 h-full w-full" style={{ opacity: showBackground ? 1 : 0 }} aria-hidden="true" />
       <div ref={glRef} className="absolute inset-0" />
-      {webglError && (
-        <div className="absolute inset-0 flex items-center justify-center p-6 text-center font-mono text-xs uppercase tracking-widest text-neutral-300">
-          Your browser could not open the summoning circle (WebGL unavailable). The creature still exists — its name, title and lore are below.
+      <button type="button" className="monster-hit-target" onPointerDown={onPointerDown} onKeyDown={onKeyDown} aria-label={`Touch ${genotype.identity.generatedName} to get a reaction`} />
+      <div className="interaction-hint"><span className="interaction-dot" /> Touch the specimen</div>
+      <div className="mood-panel" data-mood={moodState.mood} aria-live="polite">
+        <div className="mood-label"><span>Mood</span><span>{moodState.mood}</span></div>
+        <div className="mood-meter" aria-label={`${moodState.hits} recent interactions`}>
+          {Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < moodBars ? 'is-hot' : ''} />)}
         </div>
-      )}
+      </div>
+      {webglError && <div className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center font-mono text-xl uppercase tracking-widest text-neutral-300">Your browser could not open the summoning circle. The creature still exists — its name, title and lore are below.</div>}
     </div>
   );
 });
