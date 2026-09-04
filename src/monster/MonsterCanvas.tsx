@@ -24,12 +24,9 @@ interface Props {
   className?: string;
 }
 
-type Mood = 'calm' | 'irritated' | 'hostile' | 'enraged';
-interface MoodState { mood: Mood; anger: number; hits: number }
 interface ReactionRuntime extends ReactionState { lastHit: number; hits: number; }
 
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-const moodFor = (anger: number): Mood => anger >= 0.75 ? 'enraged' : anger >= 0.5 ? 'hostile' : anger > 0 ? 'irritated' : 'calm';
 const initialReaction = (): ReactionRuntime => ({ age: 0, intensity: 0, anger: 0, direction: 1, lastHit: -Infinity, hits: 0 });
 
 export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function MonsterCanvas(
@@ -38,9 +35,9 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
 ) {
   const glRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
-  const moodTimer = useRef<number>(0);
+  const reactionTimer = useRef<number>(0);
   const [webglError, setWebglError] = useState(false);
-  const [moodState, setMoodState] = useState<MoodState>({ mood: 'calm', anger: 0, hits: 0 });
+  const [isReacting, setIsReacting] = useState(false);
   const stateRef = useRef<{
     renderer?: THREE.WebGLRenderer; scene?: THREE.Scene; camera?: THREE.PerspectiveCamera;
     rig?: AnimRig; dispose?: () => void; startTime: number; assembled: boolean; time: number; reaction: ReactionRuntime;
@@ -55,12 +52,13 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     if (!s.assembled || !s.rig) return;
     const now = s.time;
     const recent = now - s.reaction.lastHit < 2.3;
-    const anger = Math.min(1, s.reaction.anger + (recent ? 0.2 : 0.16));
-    const hits = recent ? Math.min(5, s.reaction.hits + 1) : 1;
+    const anger = Math.min(1, s.reaction.anger + (recent ? 0.34 : 0.42));
+    const hits = recent ? Math.min(4, s.reaction.hits + 1) : 1;
     s.reaction = { age: 0, intensity: 1, anger, direction, lastHit: now, hits };
-    setMoodState({ mood: moodFor(anger), anger, hits });
-    window.clearTimeout(moodTimer.current);
-    moodTimer.current = window.setTimeout(() => setMoodState({ mood: 'calm', anger: 0, hits: 0 }), 3400);
+    setIsReacting(false);
+    window.requestAnimationFrame(() => setIsReacting(true));
+    window.clearTimeout(reactionTimer.current);
+    reactionTimer.current = window.setTimeout(() => setIsReacting(false), 900);
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -124,9 +122,9 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
       if (s.rig) {
         const dur = reduced ? 300 : 1500;
         const assemble = s.startTime === 0 ? 1 : Math.min(1, (now - s.startTime) / dur);
-        if (s.reaction.lastHit > -Infinity) s.reaction.anger = Math.max(0, s.reaction.anger - dt * 0.07);
+        if (s.reaction.lastHit > -Infinity) s.reaction.anger = Math.max(0, s.reaction.anger - dt * 0.11);
         const reaction = s.reaction.lastHit > -Infinity ? {
-          age: Math.max(0, s.time - s.reaction.lastHit), intensity: Math.max(0, 1 - Math.max(0, s.time - s.reaction.lastHit) / 0.72),
+          age: Math.max(0, s.time - s.reaction.lastHit), intensity: Math.max(0, 1 - Math.max(0, s.time - s.reaction.lastHit) / 1.05),
           anger: s.reaction.anger, direction: s.reaction.direction,
         } : undefined;
         applyAnimation(s.rig, genotypeRef.current.idle, { assemble, time: s.time, reducedMotion: reduced, reaction });
@@ -137,7 +135,7 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
-      window.clearTimeout(moodTimer.current);
+      window.clearTimeout(reactionTimer.current);
       s.dispose?.();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -157,7 +155,7 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     s.startTime = performance.now();
     s.assembled = false;
     s.reaction = initialReaction();
-    setMoodState({ mood: 'calm', anger: 0, hits: 0 });
+    setIsReacting(false);
     const bg = bgRef.current;
     if (bg) { bg.width = BG_RES; bg.height = BG_RES; paintBackground(bg.getContext('2d')!, BG_RES, BG_RES, genotype); }
   }, [genotype, summonToken]);
@@ -172,21 +170,12 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     event.preventDefault();
     triggerReaction(1);
   };
-  const moodBars = Math.ceil(moodState.anger * 5);
-
   return (
-    <div className={`relative aspect-square w-full overflow-hidden ${className ?? ''}`} role="img" data-mood={moodState.mood}
+    <div className={`monster-canvas aspect-square w-full overflow-hidden ${className ?? ''}`} role="img" data-reacting={isReacting}
       aria-label={`${genotype.identity.generatedName}, ${genotype.identity.classification.toLowerCase()}: a pixel creature with ${genotype.anatomy.eyes.count} eyes, ${genotype.anatomy.armCount} arms and ${genotype.anatomy.legCount} legs.`}>
       <canvas ref={bgRef} className="pixelated absolute inset-0 h-full w-full" style={{ opacity: showBackground ? 1 : 0 }} aria-hidden="true" />
       <div ref={glRef} className="absolute inset-0" />
       <button type="button" className="monster-hit-target" onPointerDown={onPointerDown} onKeyDown={onKeyDown} aria-label={`Touch ${genotype.identity.generatedName} to get a reaction`} />
-      <div className="interaction-hint"><span className="interaction-dot" /> Touch the specimen</div>
-      <div className="mood-panel" data-mood={moodState.mood} aria-live="polite">
-        <div className="mood-label"><span>Mood</span><span>{moodState.mood}</span></div>
-        <div className="mood-meter" aria-label={`${moodState.hits} recent interactions`}>
-          {Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < moodBars ? 'is-hot' : ''} />)}
-        </div>
-      </div>
       {webglError && <div className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center font-mono text-xl uppercase tracking-widest text-neutral-300">Your browser could not open the summoning circle. The creature still exists — its name, title and lore are below.</div>}
     </div>
   );

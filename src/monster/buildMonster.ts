@@ -2,13 +2,14 @@ import * as THREE from "three";
 import type { MonsterGenotype } from "../generator/types";
 import { subRng, type Rng } from "../generator/rng";
 
-export interface EyeRig { group: THREE.Group; pupil?: THREE.Object3D; }
+export interface EyeRig { group: THREE.Group; pupil?: THREE.Object3D; brow?: THREE.Object3D; }
 export interface AnimRig {
   root: THREE.Group;
   creature: THREE.Group; // sways / bobs
   body: THREE.Group;
   head: THREE.Group;
   eyes: EyeRig[];
+  snarl?: THREE.Group;
   jaw?: THREE.Object3D;
   tongue?: THREE.Object3D;
   tail?: THREE.Object3D;
@@ -109,7 +110,7 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
   const arms: THREE.Object3D[] = [];
   const hands: THREE.Object3D[] = [];
   const assembleParts: AnimRig["assembleParts"] = [];
-  let jaw: THREE.Object3D | undefined, tongue: THREE.Object3D | undefined, tail: THREE.Object3D | undefined;
+  let snarl: THREE.Group | undefined, jaw: THREE.Object3D | undefined, tongue: THREE.Object3D | undefined, tail: THREE.Object3D | undefined;
   let aura: THREE.Object3D | undefined, halo: THREE.Object3D | undefined;
 
   const registerPart = (obj: THREE.Object3D, delayBase = 0) => {
@@ -371,8 +372,16 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
         eg.add(mesh(box(size * 1.1, size * 1.1, 0.1), eyeMat));
         const pp = mesh(box(size * 0.5, size * 0.55, 0.08), pupilMat); pp.position.z = 0.06; eg.add(pp); pupil = pp;
       }
+      let brow: THREE.Object3D | undefined;
+      if (collectEyes) {
+        brow = mesh(box(size * 1.35, Math.max(0.035, size * 0.2), 0.08), pupilMat);
+        brow.position.set(0, size * 0.95, 0.13);
+        brow.scale.y = 0.001;
+        brow.visible = false;
+        eg.add(brow);
+      }
       target.add(eg);
-      if (collectEyes) eyes.push({ group: eg, pupil });
+      if (collectEyes) eyes.push({ group: eg, pupil, brow });
     }
 
     // mouth
@@ -415,6 +424,22 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
       for (let i = -1; i <= 1; i++) { const t = mesh(box(0.07, 0.1, 0.1), toothMat); t.position.set(i * mw * 0.2, -0.14, 0.02); mg.add(t); }
     }
     target.add(mg);
+    if (collectEyes) {
+      const sg = new THREE.Group();
+      sg.position.set(0, my - headH * 0.04, (mouthZOverride ?? frontZ) + 0.13);
+      const cavity = mesh(box(mw * 0.9, Math.max(0.1, headH * 0.13), 0.09), mouthMat);
+      sg.add(cavity);
+      for (const side of [-1, 1]) {
+        const fang = mesh(cone(Math.max(0.045, mw * 0.055), Math.max(0.16, headH * 0.22), 4), toothMat);
+        fang.rotation.x = Math.PI;
+        fang.position.set(side * mw * 0.29, -headH * 0.09, 0.06);
+        sg.add(fang);
+      }
+      sg.scale.y = 0.001;
+      sg.visible = false;
+      target.add(sg);
+      snarl = sg;
+    }
     if (a.mutations.includes("skeletal_face")) {
       // nasal cavity
       const nc = mesh(box(0.1, 0.14, 0.1), pupilMat); nc.position.set(0, ey - es * 1.6, frontZ); target.add(nc);
@@ -604,7 +629,7 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
   root.rotation.y = isQuad ? 0.55 : 0.3;
 
   const rig: AnimRig = {
-    root, creature, body, head, eyes, jaw, tongue, tail, wings, ears, arms, hands, aura, halo,
+    root, creature, body, head, eyes, snarl, jaw, tongue, tail, wings, ears, arms, hands, aura, halo,
     floatingHead: a.mutations.includes("floating_head"), floating, assembleParts, height: height * fit,
   };
   return { rig, dispose: () => mats.dispose() };
