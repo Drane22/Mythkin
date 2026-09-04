@@ -1,9 +1,11 @@
 # ▣ MYTHKIN
 
-> *What monster hides in your name?*
+> *What monster hides in your name?*  
+> **Created by Drane**
 
 Every name conceals exactly one creature: chunky, pixelated, alive, and yours forever. **Mythkin** is a deterministic procedural generator that translates any name or string into a unique mythological beast with bespoke anatomy, stats, mythology, and 3D pixel animation.
 
+[![Creator](https://img.shields.io/badge/Created%20by-Drane-8b5cf6?style=flat-square)](#-author)
 [![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-0.185-black?style=flat-square&logo=threedotjs)](https://threejs.org/)
@@ -183,6 +185,12 @@ src/
 ├── index.css            # Retro pixel CSS utilities and scanline filters
 └── main.tsx             # Application bootstrap
 ```
+
+---
+
+## 👤 Author
+
+Created by **Drane**.
 
 ---
 
