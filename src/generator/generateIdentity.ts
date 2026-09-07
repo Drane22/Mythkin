@@ -20,30 +20,10 @@ function cap(s: string) {
 export function generateName(r: Rng, g: Partial_): string {
   const P = MYTHOLOGIES[g.mythology.primary];
   const S = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : P;
-  const n = Number(r.weighted({ 2: 6, 3: 4 } as Record<string, number>));
-  const V = /[aeiouyāēōūáéíóúàèìòù]/i;
-  const chunks: string[] = [];
-  for (let i = 0; i < n - 1; i++) {
-    const fam = r.chance(0.2) ? S : P;
-    chunks.push(r.pick(fam.onsets));
-  }
-  chunks.push(r.pick(r.chance(0.25) ? S.codas : P.codas));
-  let name = chunks[0];
-  for (let i = 1; i < chunks.length; i++) {
-    const next = chunks[i];
-    const endsV = V.test(name.slice(-1));
-    const startsV = V.test(next[0]);
-    if (endsV && startsV) name = name.slice(0, -1) + next;
-    else if (!endsV && !startsV) {
-      // insert a short vowel between consonant piles
-      const v = r.pick(P.nuclei).slice(0, 1);
-      name = name + v + next;
-    } else name += next;
-  }
-  name = name.replace(/(.)\1\1+/g, "$1$1").replace(/[^\p{L}]/gu, "");
-  if (name.length > 11) name = name.slice(0, 11);
-  if (name.length < 4) name += r.pick(P.codas);
-  return cap(name);
+  const onset = r.pick(P.onsets).normalize('NFC');
+  const bridge = /[aeiouy]$/i.test(onset) ? '' : r.pick(P.nuclei);
+  return cap((onset + bridge + r.pick(S.codas)).replace(/(.)\1\1+/g, '$1$1'));
+
 }
 
 const TITLE_SHAPES = [
@@ -59,7 +39,7 @@ const TITLE_SHAPES = [
 
 export function generateTitle(r: Rng, g: Partial_): string {
   const P = MYTHOLOGIES[g.mythology.primary];
-  const S = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : P;
+
   const anatomyEpithets: string[] = [];
   const a = g.anatomy;
   if (a.eyes.count === 1) anatomyEpithets.push("One-Eyed");
@@ -76,7 +56,7 @@ export function generateTitle(r: Rng, g: Partial_): string {
   if (a.body === "floating") anatomyEpithets.push("Drifting");
   if (a.skin === "bone") anatomyEpithets.push("Bone-White");
   if (a.mutations.includes("two_faces")) anatomyEpithets.push("Two-Faced");
-  const epithet = r.chance(0.45) && anatomyEpithets.length ? r.pick(anatomyEpithets) : r.pick(r.chance(0.25) ? S.epithets : P.epithets);
+  const epithet = anatomyEpithets.length ? r.pick(anatomyEpithets) : r.pick(["Watchful", "Ancient", "Restless", "Silent"]);
   const domain = r.pick(P.domains);
   return r.pick(TITLE_SHAPES)(epithet, domain);
 }
@@ -103,30 +83,23 @@ export function matchArchetype(g: Partial_): string | undefined {
       if (m.armCount?.includes(a.armCount)) score++;
       if (m.skin?.includes(a.skin)) score++;
       if (m.back?.includes(a.back)) score++;
-      if (score >= arch.need + 1 && (!best || score > best.score)) best = { name: arch.name.toUpperCase(), score };
+      if (score === Object.keys(m).length && score >= arch.need && (!best || score > best.score)) best = { name: arch.name.toUpperCase(), score };
     }
   }
   return best?.name;
 }
 
-export function generateClassification(r: Rng, g: Partial_): string {
-  const P = MYTHOLOGIES[g.mythology.primary];
-  const S = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : P;
+export function generateClassification(_r: Rng, g: Partial_): string {
   const a = g.anatomy;
-  const anatomyAdj: string[] = [];
-  if (a.body === "serpent") anatomyAdj.push("SERPENT-BORN");
-  if (a.body === "floating") anatomyAdj.push("DRIFTING");
-  if (a.eyes.count >= 4) anatomyAdj.push("MANY-EYED");
-  if (a.skin === "bone") anatomyAdj.push("BONE");
-  if (a.skin === "stone") anatomyAdj.push("STONE");
-  if (a.wings !== "none") anatomyAdj.push("WINGED");
-  if (a.eyes.type === "hollow") anatomyAdj.push("HOLLOW");
-  const generic = ["NIGHT", "ASHEN", "MOON", "FOREST", "MARSH", "EMBER", "SALT", "DUSK"];
-  const adj = r.chance(0.35) && anatomyAdj.length ? r.pick(anatomyAdj) : r.chance(0.6) ? r.pick(P.classAdj) : r.pick(generic);
-  const nounPool = r.chance(0.2) ? S.classNoun : P.classNoun;
-  const genericNoun = ["WRAITH", "FIEND", "STALKER", "HERALD", "WATCHER", "SPIRIT", "CHIMERA", "DEVOURER"];
-  const noun = r.chance(0.55) ? r.pick(nounPool) : r.pick(genericNoun);
-  return `${adj} ${noun}`;
+  const archetype = matchArchetype(g);
+  if (archetype) return archetype.replace(/-/g, ' ');
+  const shape = a.body === 'serpent' || a.mutations.includes('serpent_lower') ? 'SERPENT'
+    : a.body === 'quadruped' ? 'BEAST' : a.body === 'floating' ? 'SPIRIT'
+    : a.body === 'shell' ? 'SHELLBACK' : 'CREATURE';
+  const feature = a.wings !== 'none' ? 'WINGED' : a.horns === 'antlers' ? 'ANTLERED'
+    : a.eyes.count === 1 ? 'ONE EYED' : a.skin === 'stone' ? 'STONE' : a.skin === 'bone' ? 'SKELETAL'
+    : a.skin === 'scales' ? 'SCALED' : a.skin === 'fur' ? 'SHAGGY' : 'NIGHT';
+  return `${feature} ${shape}`;
 }
 
 export function generateTraits(r: Rng, g: Partial_): string[] {
@@ -149,44 +122,26 @@ export function generateTraits(r: Rng, g: Partial_): string[] {
     const src = r.weighted({ primary: 4, secondary: g.mythology.secondary ? 1 : 0, universal: 4 });
     pool.add(src === "primary" ? r.pick(P.traits) : src === "secondary" ? r.pick(S.traits) : r.pick(UNIVERSAL_TRAITS));
   }
-  return [...pool];
+  return [...pool].filter(trait => {
+    if (trait === 'MANY-HEADED') return false;
+    if (trait === 'IRON-SKINNED') return a.skin === 'stone';
+    if (trait === 'SKY-BORNE') return a.wings !== 'none';
+    return true;
+  });
 }
 
-const SUBJECTS = ["A {adj} {noun}", "This {adj} {noun}", "A {noun} of {domain}", "The {adj} {noun} of {domain}"];
-const ADJ = ["marsh-born", "hollow-eyed", "patient", "half-remembered", "salt-crusted", "moon-fed", "restless", "grinning", "unblinking", "soft-footed", "ancient", "cold", "small and furious", "enormous and shy"];
-const NOUNS = ["watcher", "thing", "spirit", "creature", "wanderer", "visitor", "presence", "hunger", "shape", "omen"];
-const VERBS = [
-  "said to appear {habitat} {omen}",
-  "that lingers {habitat}, most often {omen}",
-  "known to follow travelers who repeatedly hear their own names whispered {omen}",
-  "that is only ever seen {habitat}, and only {omen}",
-  "rumored to count the sleeping {habitat} {omen}",
-  "that trades in borrowed voices {habitat} {omen}",
-  "that leaves {trace} {habitat} {omen}",
-];
-const TRACES = ["wet footprints leading upward", "a single warm stone", "a smell of rain and iron", "one shoe, always the left", "small teeth arranged in a circle", "handprints on the inside of windows"];
-
 export function generateLore(r: Rng, g: Partial_): string {
-  const P = MYTHOLOGIES[g.mythology.primary];
-  const S = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : P;
   const a = g.anatomy;
-  const adjs = [...ADJ];
-  if (a.eyes.count >= 4) adjs.push("many-eyed");
-  if (a.eyes.count === 1) adjs.push("one-eyed");
-  if (a.body === "serpent") adjs.push("coiling");
-  if (a.wings !== "none") adjs.push("wide-winged");
-  if (a.armCount >= 4) adjs.push("many-handed");
-  const subj = r.pick(SUBJECTS)
-    .replace("{adj}", r.pick(adjs))
-    .replace("{noun}", r.pick(NOUNS))
-    .replace("{domain}", r.pick(P.domains));
-  const verb = r.pick(VERBS)
-    .replace("{habitat}", r.pick(P.habitats))
-    .replace("{omen}", r.pick(r.chance(0.3) ? S.omens : P.omens))
-    .replace("{trace}", r.pick(TRACES));
-  let s = `${subj} ${verb}.`;
-  s = s.replace(/\s+/g, " ").replace(/\bA ([aeiou])/g, "An $1");
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  const P = MYTHOLOGIES[g.mythology.primary];
+  const shape = a.body === 'quadruped' ? 'beast' : a.body === 'serpent' || a.mutations.includes('serpent_lower') ? 'coiled serpent'
+    : a.body === 'floating' ? 'floating spirit' : a.body === 'shell' ? 'shell-backed creature'
+    : a.body === 'tall' ? 'tall creature' : a.body === 'hunched' ? 'hunched creature' : 'stocky creature';
+  const features = [a.eyes.count === 1 ? 'one eye' : `${a.eyes.count} eyes`];
+  if (a.wings !== 'none') features.push(`${a.wings === 'feather' ? 'feathered' : a.wings === 'bat' ? 'leathery' : a.wings} wings`);
+  else if (a.horns !== 'none') features.push(a.horns === 'antlers' ? 'branching antlers' : a.horns === 'single' ? 'a single horn' : a.horns === 'crown' ? 'a crown of horns' : `${a.horns === 'ram' ? 'curled' : a.horns === 'oni' ? 'short pointed' : a.horns} horns`);
+  const origin = g.mythology.secondary && a.borrowed.length
+    ? ` Its ${a.borrowed.join(', ')} draw on ${MYTHOLOGIES[g.mythology.secondary].label}.` : '';
+  return `A ${shape} with ${features.join(' and ')}, inspired by ${P.label}.${origin} It shelters ${r.pick(P.habitats)} and emerges ${r.pick(P.omens)}.`;
 }
 
 function tendency(g: Partial_, r: Rng): string {

@@ -17,6 +17,8 @@ export interface AnimRig {
   ears: THREE.Object3D[];
   arms: THREE.Object3D[];
   hands: THREE.Object3D[];
+  legs: THREE.Object3D[];
+  bodyType: MonsterGenotype["anatomy"]["body"];
   aura?: THREE.Object3D;
   halo?: THREE.Object3D;
   floatingHead: boolean;
@@ -109,6 +111,7 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
   const ears: THREE.Object3D[] = [];
   const arms: THREE.Object3D[] = [];
   const hands: THREE.Object3D[] = [];
+  const legs: THREE.Object3D[] = [];
   const assembleParts: AnimRig["assembleParts"] = [];
   let snarl: THREE.Group | undefined, jaw: THREE.Object3D | undefined, tongue: THREE.Object3D | undefined, tail: THREE.Object3D | undefined;
   let aura: THREE.Object3D | undefined, halo: THREE.Object3D | undefined;
@@ -275,6 +278,7 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
       lg.position.set(side * spread, bodyBottom + 0.08, z);
       if (a.legCount === 2 && Math.abs(p.asym) > 0.55) lg.rotation.z = side * 0.12 * Math.sign(p.asym);
       creature.add(lg);
+      legs.push(lg);
       legLen = Math.max(legLen, len - 0.08);
       registerPart(lg, 0.15 + i * 0.05);
       void legRng;
@@ -319,7 +323,7 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
   head.position.set(0, bodyTop + headH * 0.5 - headBottom - headH * 0.5 + p.neckLength * 0.6 + (isQuad ? 0.1 : 0.02), isQuad ? bodyFrontZ - 0.1 : bodyType === "hunched" ? bodyFrontZ * 0.5 : 0.05);
   if (a.mutations.includes("floating_head")) head.position.y += 0.45;
   if (p.neckLength > 0.12 && !a.mutations.includes("floating_head")) {
-    const neck = mesh(box(S * 0.3, p.neckLength * 0.9 + 0.2, S * 0.3), bodyMat);
+    const neck = mesh(box(Math.min(S * 0.65, bodyHalfW), p.neckLength * 0.9 + 0.28, S * 0.55), bodyMat);
     neck.position.set(head.position.x, bodyTop + p.neckLength * 0.3, head.position.z); body.add(neck);
   }
   head.rotation.z = p.headTilt;
@@ -628,8 +632,16 @@ export function buildMonster(g: MonsterGenotype): { rig: AnimRig; dispose: () =>
   root.position.x = -((bb.max.x + bb.min.x) / 2) * fit;
   root.rotation.y = isQuad ? 0.55 : 0.3;
 
+  // Store rest transforms before assembly displaces any joints.
+  root.traverse(obj => {
+    for (const axis of ['x', 'y', 'z'] as const) {
+      obj.userData[`basePos${axis.toUpperCase()}`] = obj.position[axis];
+      obj.userData[`baseRot${axis.toUpperCase()}`] = obj.rotation[axis];
+    }
+  });
+
   const rig: AnimRig = {
-    root, creature, body, head, eyes, snarl, jaw, tongue, tail, wings, ears, arms, hands, aura, halo,
+    root, creature, body, head, eyes, snarl, jaw, tongue, tail, wings, ears, arms, hands, legs, bodyType, aura, halo,
     floatingHead: a.mutations.includes("floating_head"), floating, assembleParts, height: height * fit,
   };
   return { rig, dispose: () => mats.dispose() };

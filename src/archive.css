@@ -59,17 +59,20 @@ button { color: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .background-sigil {
   position: absolute;
-  display: block;
-  color: rgba(255, 225, 77, 0.055);
-  font-family: Georgia, serif;
-  line-height: 1;
-  text-shadow: 0 0 18px rgba(255, 225, 77, 0.12);
-  animation: sigil-drift 28s ease-in-out infinite alternate;
-  will-change: transform;
+  color: #b78aff;
+  opacity: 0;
+  filter: drop-shadow(0 0 7px #9a56ef);
+  animation: violet-sigil-life 10s ease-in-out both;
 }
-.background-sigil:nth-child(3n + 2) {
-  color: rgba(164, 112, 255, 0.045);
-  text-shadow: 0 0 18px rgba(164, 112, 255, 0.1);
+@keyframes violet-sigil-life {
+  0%, 100% { opacity: 0; transform: translateY(5px); }
+  32% { opacity: 0.22; }
+  55% { opacity: 0.1; }
+  70% { opacity: 0.3; transform: translateY(-5px); }
+}
+.summon-ring { opacity: 0.38; }
+@media (prefers-reduced-motion: reduce) {
+  .background-sigil { display: none; }
 }
 
 .site-header,
@@ -439,7 +442,7 @@ button { color: inherit; -webkit-tap-highlight-color: transparent; }
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: rgba(7, 6, 10, 0.84);
+  background: transparent;
   pointer-events: none;
   transition: opacity 450ms ease;
 }

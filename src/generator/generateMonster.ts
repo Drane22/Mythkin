@@ -47,7 +47,7 @@ export function generateMonster(rawInput: string): MonsterGenotype {
   const body = pickPart("body", "body") as MonsterGenotype["anatomy"]["body"];
   const head = pickPart("head", "head") as MonsterGenotype["anatomy"]["head"];
   const eyeType = pickPart("eyes", "eyes") as MonsterGenotype["anatomy"]["eyes"]["type"];
-  const mouth = pickPart("mouth", "mouth") as MonsterGenotype["anatomy"]["mouth"];
+  let mouth = pickPart("mouth", "mouth") as MonsterGenotype["anatomy"]["mouth"];
   const horns = pickPart("horns", "horns") as MonsterGenotype["anatomy"]["horns"];
   const ears = pickPart("ears", "ears") as MonsterGenotype["anatomy"]["ears"];
   let arms = pickPart("arms", "arms") as MonsterGenotype["anatomy"]["arms"];
@@ -70,6 +70,11 @@ export function generateMonster(rawInput: string): MonsterGenotype {
   if (legCount === 0) legs = "none";
   if (body === "quadruped" && legs === "none") legs = "thick";
   if (body === "serpent" && tail === "none") tail = "serpent";
+
+  // Keep locomotion and facial features compatible.
+  if (body === "quadruped") { arms = "none"; armCount = 0; }
+  if (head === "beak") mouth = "beak";
+  else if (mouth === "beak") mouth = "flat";
 
   // ---- mutations (rarity-gated)
   const mutRng = subRng(master, "mutation");
@@ -95,6 +100,11 @@ export function generateMonster(rawInput: string): MonsterGenotype {
     if (m === "halo" && mutations.includes("crown_of_eyes")) continue;
     if ((m === "one_giant_eye" || m === "six_eyes" || m === "crown_of_eyes" || m === "stacked_eyes" || m === "mouth_eyes") &&
       mutations.some((x) => ["one_giant_eye", "six_eyes", "crown_of_eyes", "stacked_eyes", "mouth_eyes"].includes(x))) continue;
+    if (["four_legs", "serpent_lower", "no_legs"].includes(m) && mutations.some(x => ["four_legs", "serpent_lower", "no_legs"].includes(x))) continue;
+    if (m === "serpent_lower" && body === "floating") continue;
+    if (m === "detached_hands" && (armCount === 0 || mutations.includes("wings_for_arms"))) continue;
+    if (m === "wings_for_arms" && mutations.some(x => ["detached_hands", "many_arms"].includes(x))) continue;
+    if (m === "many_arms" && mutations.includes("wings_for_arms")) continue;
     mutations.push(m);
   }
   // apply structural mutations
@@ -134,6 +144,17 @@ export function generateMonster(rawInput: string): MonsterGenotype {
     brokenHorn: horns !== "none" && pr.chance(0.18),
     oddArm: armCount > 0 && pr.chance(0.15),
   };
+
+  proportions.headScale = Math.min(proportions.headScale, body === "quadruped" ? 1.2 : 1.5);
+  proportions.neckLength = Math.max(0.14, Math.min(proportions.neckLength, 0.32));
+  proportions.armThick = proportions.bodyW * 0.9;
+  proportions.legThick = (body === "barrel" || body === "quadruped" ? 1.1 : 0.85) * proportions.bodyW;
+  const absent = new Set<string>();
+  if (!armCount) absent.add("arms");
+  if (!legCount) absent.add("legs");
+  if (wings === "none") absent.add("wings");
+  if (tail === "none") absent.add("tail");
+  for (let i = borrowed.length - 1; i >= 0; i--) if (absent.has(borrowed[i])) borrowed.splice(i, 1);
 
   // ---- palette
   const palette = generatePalette(subRng(master, "palette"), P, S, !!secondary, mutations, rarity);

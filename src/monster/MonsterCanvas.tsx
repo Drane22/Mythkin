@@ -114,14 +114,24 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
 
     let raf = 0;
     let last = performance.now();
-    const reduced = prefersReducedMotion();
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let reduced = prefersReducedMotion();
+    const updateMotion = () => { reduced = motionQuery.matches; };
+    motionQuery.addEventListener('change', updateMotion);
+    let inView = true;
+    const observer = new IntersectionObserver(entries => { inView = entries[0]?.isIntersecting ?? true; });
+    observer.observe(host);
+    let activeElapsed = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (document.hidden || !inView) return;
       s.time += dt;
+      if (!s.assembled) activeElapsed += dt;
       if (s.rig) {
         const dur = reduced ? 300 : 1500;
-        const assemble = s.startTime === 0 ? 1 : Math.min(1, (now - s.startTime) / dur);
+        if (s.startTime > 0) { activeElapsed = 0; s.startTime = 0; }
+        const assemble = reduced ? 1 : Math.min(1, activeElapsed * 1000 / dur);
         if (s.reaction.lastHit > -Infinity) s.reaction.anger = Math.max(0, s.reaction.anger - dt * 0.11);
         const reaction = s.reaction.lastHit > -Infinity ? {
           age: Math.max(0, s.time - s.reaction.lastHit), intensity: Math.max(0, 1 - Math.max(0, s.time - s.reaction.lastHit) / 1.05),
@@ -135,6 +145,8 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
+      observer.disconnect();
+      motionQuery.removeEventListener('change', updateMotion);
       window.clearTimeout(reactionTimer.current);
       s.dispose?.();
       renderer.dispose();

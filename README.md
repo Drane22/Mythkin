@@ -136,11 +136,11 @@ Each summon rolls for an overall rarity tier that dictates visual aura, color pa
    ```
 
 2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Start the local development server:**
+   ```bash 
+   npm install 
+   ``` 
+ 
+3. **Start the local development server:** 
    ```bash
    npm run dev
    ```

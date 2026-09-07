@@ -39,7 +39,8 @@ function basePosition(obj: THREE.Object3D, axis: 'x' | 'y' | 'z') {
 }
 
 export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimState) {
-  const { assemble, time } = state;
+  const { time } = state;
+  const assemble = state.reducedMotion ? 1 : state.assemble;
   const t = time * idle.speed;
   const rm = state.reducedMotion ? 0 : 1;
 
@@ -55,6 +56,13 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   }
   const settled = assemble >= 0.98;
   const eyesOpen = clamp01((assemble - 0.9) / 0.1);
+
+  // Reset transient reaction offsets before applying this frame's pose.
+  rig.creature.position.x = basePosition(rig.creature, 'x');
+  rig.creature.position.z = basePosition(rig.creature, 'z');
+  rig.root.rotation.x = baseRotation(rig.root, 'x');
+  rig.root.rotation.z = baseRotation(rig.root, 'z');
+  if (settled) rig.head.position.z = basePosition(rig.head, 'z');
 
   // ---- idle
   const breath = 1 + Math.sin(t * 2.1) * 0.025 * idle.breath * rm;
@@ -121,6 +129,36 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
     rig.aura.scale.setScalar(1 + anger * 0.22 * rm);
   }
   if (rig.halo) rig.halo.rotation.y = baseRotation(rig.halo, 'y') + t * 0.7 * rm;
+
+  // Infrequent purposeful gestures with anticipation and recovery.
+  // Each personality has a different cycle; adjacent parts follow through.
+  const cycle = (t + idle.eyeWander * 4) % 9;
+  const gesture = cycle < 2.4 ? Math.sin(cycle / 2.4 * Math.PI) ** 2 * rm * (settled ? 1 : 0) : 0;
+  const look = Math.sin(t * 0.24) > 0 ? 1 : -1;
+  hb.rotation.y += look * gesture * 0.28;
+  hb.rotation.z = baseRotation(hb, 'z') + look * gesture * 0.1;
+  if (rig.bodyType === 'serpent') {
+    rig.creature.rotation.y = baseRotation(rig.creature, 'y') + Math.sin(t * 0.85) * 0.1 * rm;
+    hb.position.z += gesture * 0.16;
+    if (rig.tail) rig.tail.rotation.y += Math.sin(t * 0.85 - 0.8) * 0.2 * rm;
+  } else if (rig.floating) {
+    rig.creature.rotation.z += Math.sin(t * 0.65 + 1) * 0.055 * rm;
+    rig.arms.forEach((arm, i) => { arm.rotation.z += (i % 2 ? -1 : 1) * gesture * 0.18; });
+  } else {
+    // Plant feet while shifting weight; lift one forefoot for a cautious step.
+    rig.creature.rotation.z += look * gesture * 0.025;
+    rig.legs.forEach((leg, i) => {
+      leg.rotation.x = baseRotation(leg, 'x') + (i === 0 ? gesture * 0.16 : -gesture * 0.025);
+      leg.rotation.z = baseRotation(leg, 'z') - look * gesture * 0.025;
+    });
+    if (rig.bodyType === 'quadruped') hb.rotation.x += gesture * 0.12;
+    if (rig.jaw && rig.bodyType === 'barrel') rig.jaw.position.y -= gesture * 0.07;
+  }
+  rig.wings.forEach((wing, i) => {
+    const side = i === 0 ? 1 : -1;
+    wing.rotation.z = baseRotation(wing, 'z') + side * gesture * 0.12;
+    wing.rotation.y += side * gesture * 0.4;
+  });
 
   // ---- direct interaction: recoil, lock-on, then a forceful silent lunge
   const reaction = state.reaction;
