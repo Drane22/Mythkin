@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/creatures.mjs && node tests/cards.mjs && node tests/share.mjs && node tests/heads.mjs && node tests/presentation.mjs && node tests/diversity.mjs",
+    "test": "node tests/creatures.mjs && node tests/cards.mjs && node tests/share.mjs && node tests/heads.mjs && node tests/presentation.mjs && node tests/layout.mjs && node tests/diversity.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
