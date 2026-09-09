@@ -1,0 +1,113 @@
+/* The document stays within the viewport; dialogs own their overflow. */
+html:has(.viewport-shell), body:has(.viewport-shell) { height: 100%; overflow: hidden; overscroll-behavior: none; }
+.viewport-shell {
+  height: var(--viewport-height, 100dvh);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+.viewport-shell .site-header, .viewport-shell .site-main { width: min(1200px, 100%); min-height: 0; padding: 0; }
+.viewport-shell .site-header { height: 48px; margin-bottom: 12px; }
+.viewport-shell .brand { font-size: 28px; }
+.back-button { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 16px; background: transparent; border: 1px solid var(--line); font-size: 13px; }
+.viewport-shell .home { height: 100%; min-height: 0; gap: clamp(24px, 5vw, 72px); grid-template-columns: 1fr 1fr; }
+.viewport-shell .home-copy { max-width: 460px; }
+.viewport-shell .home h1 { margin: 0; font-size: clamp(38px, 4.5vw, 68px); }
+.viewport-shell .summon-form { margin-top: 24px; gap: 12px; max-width: 420px; }
+.viewport-shell .name-input { height: 52px; }
+.viewport-shell .history { margin-top: 16px; }
+.viewport-shell .history-list { flex-wrap: nowrap; margin-top: 6px; }
+.viewport-shell .history-list button { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewport-shell .section-label { font-size: 11px; letter-spacing: 0; text-transform: none; }
+.viewport-shell .hero-specimen { height: 100%; min-height: 0; margin: 0; display: grid; place-items: center; container-type: size; }
+.viewport-shell .hero-art { width: min(100%, 80cqh); max-width: none; margin: 0; }
+.viewport-shell .result-grid { height: 100%; min-height: 0; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; column-gap: clamp(24px, 5vw, 72px); row-gap: 20px; }
+.viewport-shell .creature-column { grid-row: 1 / -1; height: 100%; min-height: 0; display: grid; place-items: center; container-type: size; }
+.viewport-shell .creature-frame { width: min(100%, 80cqh); margin: 0; }
+.viewport-shell .monster-canvas { aspect-ratio: 4 / 5; }
+.viewport-shell .monster-card { align-self: center; }
+.viewport-shell .monster-card h2 { font-size: clamp(32px, 4vw, 60px); margin: 0; line-height: 1; }
+.viewport-shell .monster-title { font-size: clamp(15px, 1.5vw, 19px); margin-top: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.viewport-shell .card-meta { margin-top: 20px; font-size: 12px; gap: 12px; }
+.viewport-shell .rarity-badge { padding: 4px 8px; }
+.viewport-shell .trait-list { margin-top: 12px; }
+.viewport-shell .trait-list span { font-size: 13px; }
+.viewport-shell .monster-lore { margin-top: 20px; font-size: 16px; line-height: 1.55; }
+.stage-actions { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+.stage-actions .button { min-height: 48px; padding: 10px 24px; border-radius: 4px; }
+.info-button { flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid var(--line-strong); border-radius: 50%; background: transparent; color: var(--text); font-family: Georgia, serif; font-size: 21px; font-style: italic; }
+.viewport-shell .reset-view { min-height: 32px; font-size: 11px; padding: 4px 8px; right: 8px; bottom: 8px; opacity: 0; pointer-events: none; }
+.viewport-shell .monster-canvas:focus-within .reset-view, .viewport-shell .monster-canvas:hover .reset-view { opacity: 1; pointer-events: auto; }
+.info-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); overflow: hidden; padding: 24px; border-radius: 20px; }
+.info-panel .modal-heading { flex: 0 0 auto; padding-bottom: 20px; }
+.info-panel .modal-title { font-size: 36px; overflow-wrap: anywhere; }
+.info-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 8px; }
+.info-lore { font-size: 17px; line-height: 1.7; color: var(--text); }
+.info-anatomy { margin-top: 24px; }
+.info-anatomy summary { cursor: pointer; min-height: 44px; padding-block: 8px; color: var(--muted); }
+.info-panel .why-list { margin-top: 0; }
+.info-panel .why-tendency { font-size: 16px; }
+.info-panel .why-row { grid-template-columns: 85px minmax(0, 1fr); gap: 12px; font-size: 14px; }
+@media (min-width: 761px) and (max-height: 700px) {
+  .viewport-shell .monster-card h2 { font-size: 36px; }
+  .viewport-shell .monster-lore { font-size: 14px; margin-top: 12px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+  .viewport-shell .card-meta { margin-top: 12px; }
+  .viewport-shell .trait-list { display: none; }
+}
+@media (min-width: 761px) and (max-height: 520px) {
+  .desktop-details { display: none; }
+  .viewport-shell .home h1 { font-size: 34px; }
+  .viewport-shell .history { display: none; }
+}
+@media (max-width: 760px) {
+  .viewport-shell { padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .viewport-shell .site-header { height: 44px; margin-bottom: 4px; }
+  .viewport-shell .result-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; gap: 12px; }
+  .viewport-shell .creature-column { grid-row: 1; }
+  .viewport-shell .monster-card { text-align: center; }
+  .viewport-shell .monster-card h2 { font-size: clamp(26px, 7vw, 36px); }
+  .viewport-shell .monster-title { font-size: 14px; margin-top: 6px; }
+  .desktop-details { display: none; }
+  .stage-actions { justify-content: center; gap: 12px; padding: 0; }
+  .stage-actions .button { min-width: 100px; }
+  .viewport-shell .home { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; }
+  .viewport-shell .hero-specimen { grid-row: 1; }
+  .viewport-shell .home-copy { grid-row: 2; width: 100%; max-width: 460px; justify-self: center; text-align: center; }
+  .viewport-shell .home h1 { font-size: clamp(30px, 8vw, 42px); }
+  .viewport-shell .home h1 br { display: none; }
+  .viewport-shell .summon-form { grid-template-columns: minmax(0, 1fr) auto; margin: 16px 0 0; max-width: none; align-items: center; }
+  .viewport-shell .summon-form .button { padding-inline: 22px; }
+  .viewport-shell .text-button { margin-top: 4px; min-height: 44px; padding-block: 8px; }
+  .viewport-shell .history { margin-top: 4px; }
+  .viewport-shell .history-list { justify-content: center; }
+  .info-backdrop { align-items: end; padding: 0; }
+  .info-panel { width: 100%; max-height: min(85dvh, 740px); border-radius: 22px 22px 0 0; padding: 24px 20px max(20px, env(safe-area-inset-bottom)); }
+  .info-panel .modal-title { font-size: 30px; }
+}
+/* When a keyboard leaves little vertical space, prioritize the input and actions. */
+.viewport-shell[data-short-viewport="true"] .history,
+.viewport-shell[data-short-viewport="true"] .hero-specimen { display: none; }
+.viewport-shell[data-short-viewport="true"] .home { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.viewport-shell[data-short-viewport="true"] .home-copy { grid-row: 1; justify-self: center; align-self: center; }
+.viewport-shell[data-short-viewport="true"] .home h1 { font-size: 24px; }
+.viewport-shell[data-short-viewport="true"] .summon-form { margin-top: 10px; }
+@media (max-height: 420px) {
+  .viewport-shell .history { display: none; }
+  .viewport-shell .home { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  .viewport-shell .hero-specimen { display: none; }
+  .viewport-shell .home-copy { grid-row: 1; justify-self: center; align-self: center; }
+  .viewport-shell .home h1 { font-size: 24px; }
+  .viewport-shell .summon-form { margin-top: 10px; }
+}
+@media (max-width: 760px) and (max-height: 560px) {
+  .viewport-shell .history { display: none; }
+  .viewport-shell .home h1 { font-size: 26px; }
+  .viewport-shell .result-grid { gap: 6px; }
+  .viewport-shell .monster-card h2 { font-size: 24px; }
+  .viewport-shell .monster-title { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport-shell .monster-card { transition: none; }
+}
