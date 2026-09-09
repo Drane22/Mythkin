@@ -30,24 +30,28 @@ export function WhyModal({ genotype: g, onClose }: Props) {
   ];
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop info-backdrop" onClick={onClose}>
       <div
         ref={ref}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label="Why this monster"
+        aria-labelledby="creature-info-title"
         onClick={(event) => event.stopPropagation()}
-        className="modal-shell why-panel"
+        className="modal-shell why-panel info-panel"
       >
         <div className="modal-heading">
           <div>
-            <div className="modal-title">Why this monster?</div>
-            <div className="render-note mt-2">The name always produces the same creature.</div>
+            <h2 id="creature-info-title" className="modal-title">{g.identity.generatedName}</h2>
+            <p className="render-note">{g.identity.title}</p>
           </div>
           <button className="close-button" onClick={onClose} aria-label="Close"><Icon name="close" size={17} /></button>
         </div>
+        <div className="info-content">
+        <p className="info-lore">{g.identity.lore}</p>
+        <div className="trait-list">{g.identity.traits.map(trait => <span key={trait}>{trait}</span>)}</div>
         <p className="why-tendency">{g.identity.tendency}</p>
+        <details className="info-anatomy"><summary>Origin &amp; anatomy</summary>
         <dl className="why-list">
           {rows.map(([key, value]) => (
             <div key={key} className="why-row">
@@ -56,7 +60,9 @@ export function WhyModal({ genotype: g, onClose }: Props) {
             </div>
           ))}
         </dl>
+        </details>
         <p className="why-note">Capitalisation and punctuation are ignored; spaces matter. Nothing is uploaded.</p>
+        </div>
       </div>
     </div>
   );
