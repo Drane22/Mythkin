@@ -1,8 +1,10 @@
+import { paintBackgroundV2 } from './backgroundV2';
 import { subRng } from "../generator/rng";
 import type { MonsterGenotype } from "../generator/types";
 
 /** Paints a deterministic low-res pixel background. Draw at small size, upscale with nearest-neighbour. */
-export function paintBackground(ctx: CanvasRenderingContext2D, w: number, h: number, g: MonsterGenotype) {
+export function paintBackground(ctx: CanvasRenderingContext2D, w: number, h: number, g: MonsterGenotype, time = 0) {
+  if(g.visual) {paintBackgroundV2(ctx,w,h,g,time);return;}
   const r = subRng(`v${g.version}:${g.seed}`, "bg-paint");
   const pal = g.palette;
   const px = Math.max(1, Math.round(w / 64)); // logical pixel size

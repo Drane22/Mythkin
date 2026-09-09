@@ -1,19 +1,16 @@
-import { generateMonster as generateV1 } from './generateMonsterV1';
-import { makeVisualProfile } from './visualProfile';
 import { MYTHOLOGIES, MYTHOLOGY_IDS, type MythologyFamily } from "./mythology";
 import { Rng, normalizeInput, seedHex, subRng } from "./rng";
 import {
-  GENERATION_VERSION,
+
   type BackgroundType, type IdlePersonality, type MonsterGenotype, type Mutation,
   type MythologyId, type Palette, type Proportions, type Rarity,
 } from "./types";
 import { generateIdentity } from "./generateIdentity";
 
+const GENERATION_VERSION = 1;
 const cache = new Map<string, MonsterGenotype>();
 
-export function generateMonster(rawInput: string, version = GENERATION_VERSION): MonsterGenotype {
-  if(version === 1) return generateV1(rawInput);
-  if(version !== GENERATION_VERSION) throw new Error('Unsupported generation version');
+export function generateMonster(rawInput: string): MonsterGenotype {
   const input = normalizeInput(rawInput) || "nameless";
   const key = `${GENERATION_VERSION}:${input}`;
   const hit = cache.get(key);
@@ -34,13 +31,9 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
   const P = MYTHOLOGIES[primary];
   const S = secondary ? MYTHOLOGIES[secondary] : P;
 
-  const profileRng = subRng(master, 'archetype-profile');
-  const bias = profileRng.chance(.55) ? profileRng.pick(P.archetypes) : undefined;
   const borrowed: string[] = [];
   const pickPart = <K extends keyof MythologyFamily>(domain: string, key: K) => {
     const r = subRng(master, domain);
-    const favored = bias?.match[domain as keyof typeof bias.match];
-    if(favored?.length && r.chance(.92)) return String(r.pick(favored as readonly (string|number)[]));
     const fromSecondary = secondary && r.chance(influence);
     const fam = fromSecondary ? S : P;
     if (fromSecondary) borrowed.push(domain);
@@ -53,7 +46,7 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
 
   // ---- base anatomy
   const body = pickPart("body", "body") as MonsterGenotype["anatomy"]["body"];
-  let head = pickPart("head", "head") as MonsterGenotype["anatomy"]["head"];
+  const head = pickPart("head", "head") as MonsterGenotype["anatomy"]["head"];
   const eyeType = pickPart("eyes", "eyes") as MonsterGenotype["anatomy"]["eyes"]["type"];
   let mouth = pickPart("mouth", "mouth") as MonsterGenotype["anatomy"]["mouth"];
   const horns = pickPart("horns", "horns") as MonsterGenotype["anatomy"]["horns"];
@@ -72,10 +65,9 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
 
   const countRng = subRng(master, "counts");
   let eyeCount = countRng.weighted({ 1: 12, 2: 58, 3: 24, 4: 6 } as Record<string, number>) as unknown as number;
-  eyeCount = bias?.match.eyesCount ? profileRng.pick(bias.match.eyesCount) : Number(eyeCount);
+  eyeCount = Number(eyeCount);
   let armCount = arms === "none" ? 0 : countRng.weighted({ 2: 84, 4: 13, 6: 3 } as Record<string, number>) as unknown as number;
-  armCount = bias?.match.armCount ? profileRng.pick(bias.match.armCount) : Number(armCount);
-  if(armCount && arms === 'none') arms = 'long';
+  armCount = Number(armCount);
   let legCount = 0;
   if (body === "quadruped") legCount = 4;
   else if (body === "serpent" || body === "floating") legCount = 0;
@@ -86,10 +78,7 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
   if (body === "serpent" && tail === "none") tail = "serpent";
 
   // Keep locomotion and facial features compatible.
-  const centauroid = body === 'quadruped' && (Boolean(bias?.match.arms) || profileRng.chance(.22));
-  if(body === 'quadruped' && !centauroid) { arms='none';armCount=0; }
-  if(centauroid) { arms = arms === 'none' ? 'long' : arms;armCount=2; }
-  if(head === 'beak' && bias?.match.mouth && !bias.match.mouth.includes('beak')) head = bias.match.head?.find(h=>h!=='beak') ?? 'sphere';
+  if (body === "quadruped") { arms = "none"; armCount = 0; }
   if (head === "beak") mouth = "beak";
   else if (mouth === "beak") mouth = "flat";
 
@@ -106,8 +95,6 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
   for (const m of pool) {
     if (mutations.length >= budget) break;
     if (mutations.includes(m)) continue;
-    if (m === 'one_giant_eye' && eyeCount === 1) continue;
-    if ((m === 'extra_jaw' || m === 'giant_tongue') && mouth === 'none') continue;
     // compatibility rules
     if (m === "four_legs" && (body === "serpent" || body === "floating" || body === "quadruped")) continue;
     if (m === "serpent_lower" && (body === "serpent" || body === "quadruped")) continue;
@@ -136,8 +123,6 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
   if (mutations.includes("four_legs")) { legCount = 4; if (legs === "none") legs = "stubby"; }
   if (mutations.includes("serpent_lower") || mutations.includes("no_legs")) { legCount = 0; legs = "none"; if (mutations.includes("serpent_lower")) tail = "serpent"; }
   if (mutations.includes("floating_head") && body === "serpent") mutations.splice(mutations.indexOf("floating_head"), 1);
-
-  if(skin==='chitin' && legCount===2 && !mutations.includes('four_legs') && subRng(master,'multi-leg').chance(.18))legCount=6;
 
   // ---- proportions
   const pr = subRng(master, "proportions");
@@ -216,13 +201,6 @@ export function generateMonster(rawInput: string, version = GENERATION_VERSION):
   };
   const identity = generateIdentity(master, partial, rarity);
   const genotype: MonsterGenotype = { ...partial, identity };
-  const visual=makeVisualProfile(genotype);visual.archetypeBias=bias?.name;genotype.visual=visual;
-  const c=visual.colors;
-  genotype.palette={body:c.bodyPrimary,secondary:c.bodySecondary,eye:c.eyePrimary,pupil:c.eyeSecondary,mouth:c.mouthInterior,horn:c.hornPrimary,accent:c.emissive,background:c.backgroundPrimary,backgroundAccent:c.backgroundAccent};
-  if(bias?.name==='TIKBALANG') { proportions.armLength*=1.4; proportions.legLength*=1.4;proportions.bodyW*=.78; }
-  if(bias?.name==='MINOTAUR') { proportions.bodyW*=1.18;proportions.hornScale*=1.15; }
-  if(bias?.name==='MANANANGGAL') proportions.wingScale*=1.3;
-
   cache.set(key, genotype);
   return genotype;
 }

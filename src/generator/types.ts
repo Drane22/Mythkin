@@ -1,4 +1,4 @@
-export const GENERATION_VERSION = 1;
+export const GENERATION_VERSION = 2;
 
 export type MythologyId =
   | "greek"
@@ -46,7 +46,7 @@ export type LegType = "stubby" | "long" | "hoof" | "bird" | "none" | "thick";
 export type WingType = "none" | "bat" | "feather" | "stub" | "insect";
 export type TailType = "none" | "thin" | "thick" | "serpent" | "fish" | "fan" | "spike";
 export type BackType = "none" | "spikes" | "fins" | "shell" | "mane";
-export type SkinType = "smooth" | "fur" | "scales" | "bone" | "stone";
+export type SkinType = "smooth" | "fur" | "scales" | "bone" | "stone" | "feathers" | "chitin" | "bark";
 export type BackgroundType =
   | "void"
   | "solid"
@@ -135,6 +135,7 @@ export interface IdlePersonality {
 }
 
 export interface MonsterGenotype {
+  visual?: import("./visualTypes").VisualProfile;
   version: number;
   seed: string;
   input: string; // normalized input
