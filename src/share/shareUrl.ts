@@ -18,12 +18,12 @@ function fromB64url(s: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-export function buildShareUrl(rawName: string): string {
+export function buildShareUrl(rawName: string, version = GENERATION_VERSION): string {
   const n = normalizeInput(rawName) || "nameless";
   const url = new URL(window.location.href);
   url.search = "";
   url.hash = "";
-  url.searchParams.set("v", String(GENERATION_VERSION));
+  url.searchParams.set("v", String(version));
   url.searchParams.set("s", seedHex(n).slice(0, 8));
   url.searchParams.set("n", b64url(n));
   return url.toString();
@@ -39,7 +39,7 @@ export function parseShareUrl(): SharedRef | null {
     if (!n || !s) return null;
     const version = Number(p.get("v") ?? GENERATION_VERSION);
     const name = normalizeInput(fromB64url(n));
-    if (!name) return null;
+    if (!name || ![1, GENERATION_VERSION].includes(version) || seedHex(name).slice(0,8) !== s.toUpperCase()) return null;
     return { version, name, seed: s };
   } catch {
     return null;
@@ -52,6 +52,6 @@ export function clearShareUrl() {
   window.history.replaceState({}, "", url.toString());
 }
 
-export function pushShareUrl(rawName: string) {
-  window.history.replaceState({}, "", buildShareUrl(rawName));
+export function pushShareUrl(rawName: string, version = GENERATION_VERSION) {
+  window.history.replaceState({}, "", buildShareUrl(rawName, version));
 }

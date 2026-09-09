@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { MonsterGenotype } from '../generator/types';
 import { MYTHOLOGIES } from '../generator/mythology';
 import { MUTATION_LABELS } from '../generator/generateIdentity';
+import { useModalFocus } from '../hooks/useModalFocus';
 import { Icon } from './Icon';
 
 interface Props {
@@ -12,14 +13,7 @@ interface Props {
 export function WhyModal({ genotype: g, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    ref.current?.focus();
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  useModalFocus(ref, onClose);
 
   const primary = MYTHOLOGIES[g.mythology.primary];
   const secondary = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : undefined;
@@ -30,6 +24,7 @@ export function WhyModal({ genotype: g, onClose }: Props) {
     ['Shape', `${g.anatomy.body.toUpperCase()} BODY · ${g.anatomy.head.toUpperCase()} HEAD`],
     ['Anatomy', `${g.anatomy.eyes.count} EYES · ${g.anatomy.armCount} ARMS · ${g.anatomy.legCount} LEGS`],
     ['Mutation', g.anatomy.mutations.length ? g.anatomy.mutations.map((mutation) => MUTATION_LABELS[mutation]).join(', ') : 'NONE'],
+    ['Skin', g.anatomy.skin.toUpperCase()],
     ['Rarity', g.identity.rarity],
     ['Seed', `${g.seed.slice(0, 6)} · GENERATION V${g.version}`],
   ];

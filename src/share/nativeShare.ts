@@ -38,22 +38,14 @@ export function canNativeShare(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.share === "function";
 }
 
-/** Returns true if a native share happened; false if the caller should fall back. */
-export async function nativeShare(opts: { title: string; text: string; url: string; canvas?: HTMLCanvasElement; filename?: string }): Promise<boolean> {
-  if (!canNativeShare()) return false;
+export type ShareResult = 'shared' | 'cancelled' | 'unsupported' | 'failed';
+
+export async function shareCardFile(file: File, title: string): Promise<ShareResult> {
   try {
-    if (opts.canvas) {
-      const blob = await canvasToBlob(opts.canvas);
-      const file = new File([blob], opts.filename ?? "monster.png", { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: opts.title, text: opts.text, url: opts.url, files: [file] });
-        return true;
-      }
-    }
-    await navigator.share({ title: opts.title, text: opts.text, url: opts.url });
-    return true;
-  } catch (e) {
-    // user cancelled or unsupported
-    return (e as Error)?.name === "AbortError";
+    if (!canNativeShare() || !navigator.canShare?.({ files: [file] })) return 'unsupported';
+    await navigator.share({ title, files: [file] });
+    return 'shared';
+  } catch (error) {
+    return (error as Error)?.name === 'AbortError' ? 'cancelled' : 'failed';
   }
 }
