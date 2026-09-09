@@ -1,0 +1,17 @@
+import './register-typescript.mjs';
+import assert from 'node:assert/strict';
+const { shareCardFile } = await import('../src/share/nativeShare.ts');
+const file = new File(['card'], 'card.png', { type: 'image/png' });
+let calls = [];
+Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { canShare: () => true, share: async data => { calls.push(data); } } });
+assert.equal(await shareCardFile(file, 'Mythkin'), 'shared');
+assert.deepEqual(calls[0].files, [file]);
+assert.equal(calls[0].url, undefined);
+navigator.share = async () => { throw new DOMException('Cancelled', 'AbortError'); };
+assert.equal(await shareCardFile(file, 'Mythkin'), 'cancelled');
+navigator.canShare = () => false;
+assert.equal(await shareCardFile(file, 'Mythkin'), 'unsupported');
+navigator.canShare = () => true;
+navigator.share = async () => { throw new Error('failure'); };
+assert.equal(await shareCardFile(file, 'Mythkin'), 'failed');
+console.log('Passed: card file sharing, cancellation, unsupported browser and failed share; no download fallback.');
