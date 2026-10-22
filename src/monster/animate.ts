@@ -19,6 +19,7 @@ export interface AnimState {
 }
 
 const tmpV = new THREE.Vector3();
+const glitchDummy = new THREE.Object3D();
 
 function baseRotation(obj: THREE.Object3D, axis: 'x' | 'y' | 'z') {
   const key = `baseRot${axis.toUpperCase()}`;
@@ -49,6 +50,12 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
     const s = Math.max(0.001, e);
     part.obj.scale.set(part.baseScale.x * s, part.baseScale.y * s, part.baseScale.z * s);
     part.obj.visible = local > 0.01;
+    if (style === 'glitch' && assemble < .92) {
+      const band = Math.floor(part.delay * 17);
+      const scan = Math.floor(assemble * 9);
+      part.obj.position.x += Math.sin(band*13+scan*4) * .48 * (1-assemble);
+      part.obj.position.z += Math.cos(band*7+scan*3) * .18 * (1-assemble);
+    }
   }
   if(rig.summon) {
     const type=rig.summon.type,e=1-Math.pow(1-assemble,3);
@@ -67,13 +74,27 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
       }
     });
   }
-  if(rig.summon?.type==='glitch')rig.creature.visible=assemble>.78||Math.floor(assemble*22)%3!==0;
+  if(rig.summon?.type==='glitch')rig.creature.visible=assemble>.14;
   else rig.creature.visible=true;
   if(rig.pixelCloud){
     const {mesh,targets,origins}=rig.pixelCloud;mesh.visible=assemble<.9;
     const dummy=new THREE.Object3D(),progress=clamp01(assemble/.75),ease=1-Math.pow(1-progress,3);
     targets.forEach((target,i)=>{dummy.position.lerpVectors(origins[i],target,ease);dummy.rotation.set((1-ease)*i,.0,(1-ease)*i*.3);dummy.scale.setScalar(1-clamp01((assemble-.73)/.17));dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});mesh.instanceMatrix.needsUpdate=true;
     rig.creature.visible=assemble>.67;
+  }
+  if (rig.glitchCloud) {
+    const {mesh, targets} = rig.glitchCloud;
+    mesh.visible = !state.reducedMotion && assemble < .98;
+    const scatter = (1-assemble) ** 1.4;
+    if (mesh.visible) targets.forEach((target,i) => {
+      glitchDummy.position.copy(target);
+      glitchDummy.position.x += Math.sin(i*19+Math.floor(assemble*9)*7)*1.8*scatter;
+      glitchDummy.position.y += Math.sin(i*7)*.2*scatter;
+      glitchDummy.scale.set(.4+scatter*(i%4+1),1,1);
+      glitchDummy.updateMatrix(); mesh.setMatrixAt(i,glitchDummy.matrix);
+    });
+    (mesh.material as THREE.MeshBasicMaterial).opacity = .65 * clamp01((.98-assemble)/.25);
+    if (mesh.visible) mesh.instanceMatrix.needsUpdate = true;
   }
   const settled = assemble >= 0.98;
   const eyesOpen = rig.summon?.type==='shadow'?clamp01(assemble/.16):clamp01((assemble - 0.9) / 0.1);
@@ -87,20 +108,20 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   if (settled) rig.head.position.z = basePosition(rig.head, 'z');
 
   // ---- idle
-  const breath = 1 + Math.sin(t * 2.1) * 0.025 * idle.breath * rm;
+  const breath = 1 + Math.sin(t * 2.1) * 0.05 * (0.35 + idle.breath) * rm;
   const bodyPart = rig.assembleParts.find((p) => p.obj === rig.body);
   if (settled && bodyPart) rig.body.scale.set(bodyPart.baseScale.x, bodyPart.baseScale.y * breath, bodyPart.baseScale.z);
-  const bob = (rig.floating ? Math.sin(t * 1.3) * 0.12 : Math.sin(t * 2.1) * 0.02) * (0.4 + idle.bob) * rm;
+  const bob = (rig.floating ? Math.sin(t * 1.3) * 0.12 : Math.sin(t * 2.1) * 0.055) * (0.4 + idle.bob) * rm;
   rig.creature.position.y = basePosition(rig.creature, 'y') + bob;
-  rig.creature.rotation.z = baseRotation(rig.creature, 'z') + Math.sin(t * 0.9) * 0.03 * idle.sway * rm;
+  rig.creature.rotation.z = baseRotation(rig.creature, 'z') + Math.sin(t * 0.9) * 0.055 * (0.4 + idle.sway) * rm;
   rig.root.rotation.y = baseRotation(rig.root, 'y') + Math.sin(t * 0.5) * 0.08 * idle.sway * rm;
 
   if(rig.summon?.type==='pixels')rig.root.rotation.y+=(1-assemble)*1.4*rm;
 
   // head drift
   const hb = rig.head;
-  hb.rotation.y = baseRotation(hb, 'y') + Math.sin(t * 0.7) * 0.12 * idle.headDrift * rm + Math.sin(t * 5.3) * 0.02 * idle.headDrift * (idle.headDrift > 0.6 ? 1 : 0) * rm;
-  hb.rotation.x = baseRotation(hb, 'x') + Math.sin(t * 1.1 + 1) * 0.05 * idle.headDrift * rm;
+  hb.rotation.y = baseRotation(hb, 'y') + Math.sin(t * 0.7) * 0.18 * (0.4 + idle.headDrift) * rm + Math.sin(t * 5.3) * 0.02 * idle.headDrift * (idle.headDrift > 0.6 ? 1 : 0) * rm;
+  hb.rotation.x = baseRotation(hb, 'x') + Math.sin(t * 1.1 + 1) * 0.09 * (0.4 + idle.headDrift) * rm;
   if (rig.floatingHead && settled) hb.position.y = basePosition(hb, 'y') + Math.sin(t * 1.7) * 0.08 * rm;
 
   // blink + eye wander
@@ -120,13 +141,20 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   rig.creature.scale.set(1 + anger * 0.035 * rm, 1 + anger * 0.07 * rm, 1 + anger * 0.035 * rm);
   rig.eyes.forEach((e, i) => {
     const side = Math.abs(e.group.position.x) > 0.01 ? Math.sign(e.group.position.x) : (i % 2 ? 1 : -1);
-    e.group.scale.y = eyeScaleY * (1 - anger * 0.32) * (1 - (i === 0 && rig.eyes.length > 1 ? cheek * 0.8 : 0));
+    const wink = i === 0 && rig.eyes.length > 1 ? cheek * .9 : 0;
+    e.group.scale.y = e.lid ? 1 : eyeScaleY * (1 - anger * .32) * (1-wink);
+    if (e.lid) {
+      const closure = Math.max(blink*rm, wink, anger*.35);
+      e.lid.visible = closure > .02;
+      e.lid.scale.y = closure * (e.lid.userData.restScaleY ??= e.lid.scale.y);
+      e.lid.position.y = basePosition(e.lid,'y') + (1-closure)*.08;
+    }
     e.group.rotation.z = baseRotation(e.group, 'z') + side * anger * 0.22;
     if (e.brow) {
-      e.brow.visible = anger > 0.035;
-      e.brow.scale.y = Math.max(0.001, anger * 1.5);
+      e.brow.visible = true;
+      e.brow.scale.y = 1 + anger * .5;
       e.brow.rotation.z = baseRotation(e.brow, 'z') + side * anger * 0.42 + (i === 0 ? cheek * 0.3 : 0);
-      e.brow.position.y = basePosition(e.brow, 'y') - anger * 0.05;
+      e.brow.position.y = basePosition(e.brow, 'y') - anger*.05 + (pose.startle*.09+pose.curious*.04)*rm;
     }
     if (e.pupil) {
       e.pupil.position.x = basePosition(e.pupil, 'x') + gazeX * 0.035 + Math.sin(t * 0.8 + i * 0.3) * 0.04 * idle.eyeWander * rm - reactionDirection * anger * 0.07;
@@ -152,7 +180,7 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   if (rig.jaw) rig.jaw.position.y = basePosition(rig.jaw, 'y') + Math.max(0, Math.sin(t * 1.4)) * -0.06 * idle.jaw * rm - anger * 0.19;
   if (rig.tongue) rig.tongue.rotation.x = baseRotation(rig.tongue, 'x') + Math.sin(t * 2.2) * 0.25 * (0.3 + idle.jaw) * rm + anger * 0.14 * rm;
 
-  rig.ornaments?.forEach((o, i) => { o.rotation.z = baseRotation(o, 'z') + Math.sin(t * 1.7 + i * .6) * .045 * rm; });
+  rig.ornaments?.forEach((o, i) => { o.rotation.z = baseRotation(o, 'z') + Math.sin(t * 1.7 + i * .6) * .12 * rm; });
 
   // tail / wings / ears / arms / hands
   if (rig.tail) {
@@ -162,8 +190,8 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   rig.wings.forEach((w, i) => { const s = i === 0 ? 1 : -1; w.rotation.y = baseRotation(w, 'y') + s * Math.sin(t * 1.6) * 0.28 * idle.wingFlap * rm + s * anger * 0.08 * rm; });
   rig.ears.forEach((e, i) => { const tw = Math.max(0, Math.sin(t * 3.7 + i * 2.1)) ** 8; e.rotation.z = baseRotation(e, 'z') + tw * 0.25 * idle.earTwitch * rm * (i === 0 ? 1 : -1) - anger * 0.08 * rm * (i === 0 ? 1 : -1); });
   rig.arms.forEach((a, i) => {
-    a.rotation.x = baseRotation(a, 'x') + Math.sin(t * 1.2 + i) * 0.05 * rm;
-    a.rotation.z = baseRotation(a, 'z') + anger * 0.16 * rm * (i % 2 ? -1 : 1);
+    a.rotation.x = baseRotation(a, 'x') + Math.sin(t * 1.2 + i) * 0.13 * rm;
+    a.rotation.z = baseRotation(a, 'z') + Math.sin(t*1.1+i*1.4)*.07*rm + anger * 0.16 * rm * (i % 2 ? -1 : 1);
   });
   if (rig.hands.length && !rig.arms.length) rig.hands.forEach((h, i) => { h.position.y = basePosition(h, 'y') + Math.sin(t * 1.5 + i * 1.3) * 0.08 * rm; });
   if (rig.aura) {
@@ -174,7 +202,7 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
 
   // Infrequent purposeful gestures with anticipation and recovery.
   // Each personality has a different cycle; adjacent parts follow through.
-  const cycle = (t + idle.eyeWander * 4) % 9;
+  const cycle = (t + idle.eyeWander * 4) % 6.5;
   const gesture = cycle < 2.4 ? Math.sin(cycle / 2.4 * Math.PI) ** 2 * rm * (settled ? 1 : 0) : 0;
   const look = Math.sin(t * 0.24) > 0 ? 1 : -1;
   hb.rotation.y += look * gesture * 0.28;
@@ -203,16 +231,51 @@ export function applyAnimation(rig: AnimRig, idle: IdlePersonality, state: AnimS
   });
 
   // Defensive retreat, a harmless bluff, then a smug recovery.
+  // Alternate a slow head tilt, a sniff/yawn, and a hand/wing stretch.
+  const idleKind = Math.floor((t+idle.eyeWander*4)/6.5) % 3;
+  if (idleKind === 1) {
+    hb.rotation.x += gesture*.2;
+    if (rig.jaw) rig.jaw.position.y -= gesture*.1;
+    if (rig.tongue) rig.tongue.rotation.z = baseRotation(rig.tongue,'z') + gesture*.22;
+  } else if (rig.tongue) rig.tongue.rotation.z = baseRotation(rig.tongue,'z');
+  if (idleKind === 2) rig.arms.forEach((arm,i) => { arm.rotation.z += (i%2?-1:1)*gesture*.32; });
+  rig.hands.forEach((hand,i) => { hand.rotation.z = baseRotation(hand,'z') + Math.sin(t*1.2+i)*.1*rm; });
+  // Family-specific living gestures continue between taps.
+  const family = rig.root.userData.designFamily;
+  if (family === 'trickster' && rig.tongue) rig.tongue.rotation.z += Math.sin(t*2.7)*.09*rm;
+  if (family === 'warden') {
+    hb.rotation.x += Math.sin(t*.64)*.07*rm;
+    rig.hands.forEach((hand,i) => { hand.rotation.z += Math.sin(t*.75+i)*.06*rm; });
+  }
+  if (family === 'solar') hb.rotation.z += Math.sin(t*.55)*.07*rm;
+  if (rig.halo) rig.halo.rotation.x = baseRotation(rig.halo,'x') + Math.sin(t*.7)*.09*rm;
+  if (family === 'oracle') {
+    rig.creature.position.y += Math.sin(t*.9)*.045*rm;
+    rig.hands.forEach((hand,i) => { hand.rotation.z += Math.sin(t*.9+i)*.14*rm; });
+  }
   const reaction = state.reaction;
   if (reaction && rm && settled) {
-    const { guard, feint, taunt, settle } = pose;
+    const { guard, feint, taunt, settle, startle, curious, delight } = pose;
     const side = reaction.direction;
     const heavy = rig.bodyType === 'barrel' || rig.bodyType === 'shell';
     const serpent = rig.bodyType === 'serpent';
     const beast = rig.bodyType === 'quadruped';
-    const agility = heavy ? 0.55 : 1;
-    rig.creature.position.x += side * (guard * 0.12 - taunt * 0.13) * agility;
-    rig.creature.position.z += -guard * 0.16 + feint * (serpent ? 0.32 : 0.23) * agility;
+    const agility = heavy ? 0.65 : 1;
+    const giggle = Math.sin(reaction.age*17)*delight;
+    rig.creature.position.y += startle*.24*agility + Math.abs(giggle)*.09;
+    rig.creature.position.z += curious*.17 - startle*.25;
+    rig.creature.rotation.z += side*(startle*.12 + giggle*.055);
+    hb.rotation.z += side*(curious*.38 + delight*.12);
+    hb.rotation.x -= startle*.2 + curious*.1;
+    if (rig.jaw) rig.jaw.position.y -= startle*.16 + delight*.1;
+    rig.arms.forEach((arm,i) => {
+      arm.rotation.z += (i%2?-1:1)*(startle*.8 + delight*.5);
+      arm.rotation.x -= curious*.35 + giggle*.2;
+    });
+    rig.hands.forEach((hand,i) => { hand.rotation.z += (i%2?-1:1)*delight*Math.sin(reaction.age*12)*.4; });
+    if (rig.tail) rig.tail.rotation.y += giggle*.6 + side*curious*.3;
+    rig.creature.position.x += side * (guard * 0.22 - taunt * 0.2) * agility;
+    rig.creature.position.z += -guard * 0.26 + feint * (serpent ? 0.48 : 0.38) * agility;
     rig.creature.position.y += rig.floating ? guard * 0.12 + taunt * 0.06 : -guard * 0.035;
     rig.creature.rotation.y += side * (guard * 0.09 - taunt * 0.16) * agility;
     rig.creature.rotation.z += side * (taunt * 0.065 - settle * 0.015);

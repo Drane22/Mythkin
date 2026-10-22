@@ -2,14 +2,18 @@
   "name": "mythkin",
   "author": "Drane",
   "private": true,
-  "version": "0.0.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/creatures.mjs && node tests/cards.mjs && node tests/share.mjs && node tests/heads.mjs && node tests/presentation.mjs && node tests/layout.mjs && node tests/diversity.mjs",
-    "typecheck": "tsc --noEmit"
+    "test": "node tests/versioning.mjs && node tests/v3-creatures.mjs && node tests/v3-motion.mjs && node tests/v3-anatomy.mjs && node tests/v3-environments.mjs && node tests/names.mjs && node tests/sculpt-habitats.mjs && node tests/motion.mjs && node tests/creatures.mjs && node tests/cards.mjs && node tests/share.mjs && node tests/heads.mjs && node tests/presentation.mjs && node tests/layout.mjs && node tests/diversity.mjs && node tests/v3-individuals.mjs && node tests/v3-surfaces.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:individuals": "node tests/v3-individuals.mjs",
+    "test:surfaces": "node tests/v3-surfaces.mjs",
+    "review:browser": "node tests/browser-review.mjs",
+    "review:individuals": "node tests/individuals-review.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { MonsterGenotype } from "../generator/types";
 
-export interface EyeRig { group: THREE.Group; pupil?: THREE.Object3D; brow?: THREE.Object3D; }
+export interface EyeRig { group: THREE.Group; pupil?: THREE.Object3D; brow?: THREE.Object3D; lid?: THREE.Object3D; }
 export interface AnimRig {
   root: THREE.Group;
   creature: THREE.Group; // sways / bobs
@@ -27,9 +27,11 @@ export interface AnimRig {
   summon?: import("../generator/visualTypes").VisualProfile["summon"];
   ornaments?: THREE.Object3D[];
   pixelCloud?: {mesh:THREE.InstancedMesh; targets:THREE.Vector3[]; origins:THREE.Vector3[]};
+  glitchCloud?: {mesh: THREE.InstancedMesh; targets: THREE.Vector3[]};
   height: number;
 }
 
 import { buildOrganicMonster } from './organicMonster';
 import { buildOrganicMonster as buildV1 } from './organicMonsterV1';
-export function buildMonster(g: MonsterGenotype) { return g.version === 1 ? buildV1(g) : buildOrganicMonster(g); }
+import { buildCreatureV3 } from '../creatures/geometry/build';
+export function buildMonster(g: MonsterGenotype) { return g.version === 1 ? buildV1(g) : g.version === 3 ? buildCreatureV3(g) : buildOrganicMonster(g); }

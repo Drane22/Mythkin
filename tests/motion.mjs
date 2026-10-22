@@ -1,0 +1,40 @@
+// V2 regression coverage: v3 catalog and composition have their own suites.
+import './register-typescript.mjs';
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+const {generateMonster}=await import('../src/generator/generateMonsterV2.ts');
+const {buildMonster}=await import('../src/monster/buildMonster.ts');
+const {applyAnimation}=await import('../src/monster/animate.ts');
+const {REACTION_KINDS}=await import('../src/monster/reaction.ts');
+const g=generateMonster('study-1008'),{rig,dispose}=buildMonster(g);
+const signature=()=>[rig.creature.position.toArray(),rig.creature.rotation.toArray(),rig.head.rotation.toArray(),...rig.arms.map(a=>a.rotation.toArray())];
+const poses=new Set();
+for(const kind of REACTION_KINDS){
+ applyAnimation(rig,g.idle,{assemble:1,time:4,reducedMotion:false,reaction:{kind,age:.7,intensity:1,anger:0,direction:1}});
+ poses.add(JSON.stringify(signature()));
+}
+assert.equal(poses.size,6,'reactions must have distinct geometry with the same mood and time');
+applyAnimation(rig,g.idle,{assemble:1,time:0,reducedMotion:false});
+const first=rig.head.rotation.clone();
+applyAnimation(rig,g.idle,{assemble:1,time:2,reducedMotion:false});
+assert.ok(Math.hypot(first.x-rig.head.rotation.x,first.y-rig.head.rotation.y,first.z-rig.head.rotation.z)>.05,'idle head movement must be perceptible');
+const blinkTime=(3.2/g.idle.blinkRate)*.97/g.idle.speed;
+applyAnimation(rig,g.idle,{assemble:1,time:blinkTime,reducedMotion:false});
+assert.ok(rig.eyes.every(e=>e.lid?.visible),'blink must close actual eyelids');
+applyAnimation(rig,g.idle,{assemble:1,time:blinkTime,reducedMotion:true});
+assert.ok(rig.eyes.every(e=>!e.lid?.visible),'reduced motion must stop blinking');
+dispose();
+const glitch=generateMonster('glitch-proof');glitch.visual.summon.type='glitch';
+const built=buildMonster(glitch),matrix=new THREE.Matrix4();
+applyAnimation(built.rig,glitch.idle,{assemble:.2,time:.4,reducedMotion:false});
+assert.ok(built.rig.glitchCloud.mesh.visible);
+built.rig.glitchCloud.mesh.getMatrixAt(0,matrix);const early=matrix.clone();
+applyAnimation(built.rig,glitch.idle,{assemble:.6,time:1.2,reducedMotion:false});
+built.rig.glitchCloud.mesh.getMatrixAt(0,matrix);assert.notDeepEqual(matrix.elements,early.elements);
+applyAnimation(built.rig,glitch.idle,{assemble:1,time:2.4,reducedMotion:false});
+assert.equal(built.rig.glitchCloud.mesh.visible,false);
+assert.equal(built.rig.creature.visible,true);
+applyAnimation(built.rig,glitch.idle,{assemble:.2,time:.4,reducedMotion:true});
+assert.equal(built.rig.glitchCloud.mesh.visible,false);
+built.dispose();
+console.log('Passed: six visibly distinct reaction poses, perceptible idle, closing eyelids, moving glitch fragments and reduced motion.');

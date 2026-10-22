@@ -1,9 +1,11 @@
 import { GENERATION_VERSION } from "../generator/types";
 import { normalizeInput, seedHex } from "../generator/rng";
 
-// URL shape:  ?v=1&s=<SEEDHEX>&n=<base64url(normalized name)>
+// URL shape:  ?v=3&s=<SEEDHEX>&n=<base64url(normalized name)>
 // The seed identifies the creature; the name is carried so the card can show the input text
 // and so the generator can rebuild it without any database.
+
+const SUPPORTED_VERSIONS = [1, 2, 3];
 
 function b64url(str: string): string {
   const bytes = new TextEncoder().encode(str);
@@ -18,7 +20,8 @@ function fromB64url(s: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-export function buildShareUrl(rawName: string, version = GENERATION_VERSION): string {
+export function buildShareUrl(rawName: string, version: number = GENERATION_VERSION): string {
+  if (!SUPPORTED_VERSIONS.includes(version)) throw new Error("Unsupported generation version");
   const n = normalizeInput(rawName) || "nameless";
   const url = new URL(window.location.href);
   url.search = "";
@@ -39,7 +42,7 @@ export function parseShareUrl(): SharedRef | null {
     if (!n || !s) return null;
     const version = Number(p.get("v") ?? GENERATION_VERSION);
     const name = normalizeInput(fromB64url(n));
-    if (!name || ![1, GENERATION_VERSION].includes(version) || seedHex(name).slice(0,8) !== s.toUpperCase()) return null;
+    if (!name || !SUPPORTED_VERSIONS.includes(version) || seedHex(name).slice(0,8) !== s.toUpperCase()) return null;
     return { version, name, seed: s };
   } catch {
     return null;
@@ -52,6 +55,6 @@ export function clearShareUrl() {
   window.history.replaceState({}, "", url.toString());
 }
 
-export function pushShareUrl(rawName: string, version = GENERATION_VERSION) {
+export function pushShareUrl(rawName: string, version: number = GENERATION_VERSION) {
   window.history.replaceState({}, "", buildShareUrl(rawName, version));
 }

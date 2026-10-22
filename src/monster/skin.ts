@@ -30,9 +30,9 @@ export function createSkinTexture(skin: SkinType, seed: string): THREE.DataTextu
 }
 
 export function createClothTexture(seed: string): THREE.DataTexture {
-  const texture=createSkinTexture('smooth',seed), pixels=texture.image.data as Uint8Array;
+  const texture=createSkinTexture('bone',seed), pixels=texture.image.data as Uint8Array;
   for(let y=0;y<32;y++)for(let x=0;x<32;x++) {
-    const v=x%4===0||y%4===0?174:(x+y)%2?224:248;
+    const i0=(y*32+x)*4; const v=Number(pixels[i0])-(x%4===0&&y%4===0?9:0);
     const i=(y*32+x)*4;pixels[i]=pixels[i+1]=pixels[i+2]=v;
   }
   texture.needsUpdate=true;return texture;

@@ -1,11 +1,13 @@
 import './register-typescript.mjs';
 import * as THREE from 'three';
 import { createCanvas } from '@napi-rs/canvas';
+import { portraitDistance } from '../src/monster/orbit.ts';
 const {buildMonster}=await import('../src/monster/buildMonster.ts');
 const {applyAnimation}=await import('../src/monster/animate.ts');
+const {applyAnimationV3}=await import('../src/motion/v3.ts');
 export function renderMesh(g, rotation=0, state={assemble:1,time:0,reducedMotion:true}){
-  const { rig, dispose } = buildMonster(g); applyAnimation(rig,g.idle,state); rig.root.rotation.y=rotation; rig.root.updateMatrixWorld(true);
-  const camera = new THREE.PerspectiveCamera(24, .8, .1, 100); camera.position.set(0, 2.1, 10.5); camera.lookAt(0, 1.65, 0); camera.updateMatrixWorld(true);
+  const { rig, dispose } = buildMonster(g); (g.version===3?applyAnimationV3:applyAnimation)(rig,g.idle,state); rig.root.rotation.y=rotation; rig.root.updateMatrixWorld(true);
+  const distance=portraitDistance(g.version,rotation),camera = new THREE.PerspectiveCamera(24, .8, .1, 100); camera.position.set(0, 1.65+.45*distance/10.5, distance); camera.lookAt(0, 1.65, 0); camera.updateMatrixWorld(true);
   let meshes=0,triangleCount=0;
   const triangles = [], light = new THREE.Vector3(2, 4, 5).normalize();
   rig.root.traverse(o => {
@@ -20,6 +22,7 @@ export function renderMesh(g, rotation=0, state={assemble:1,time:0,reducedMotion
       const points = [0, 1, 2].map(j => new THREE.Vector3().fromBufferAttribute(pos, index ? index.getX(i + j) : i + j).applyMatrix4(transform));
       const normal = points[1].clone().sub(points[0]).cross(points[2].clone().sub(points[0])).normalize();
       if (normal.dot(camera.position.clone().sub(points[0])) <= 0) continue;
+      if(!o.material.flatShading&&o.geometry.attributes.normal){const normals=o.geometry.attributes.normal,matrix=new THREE.Matrix3().getNormalMatrix(transform),n=new THREE.Vector3();normal.set(0,0,0);for(let j=0;j<3;j++)normal.add(n.fromBufferAttribute(normals,index?index.getX(i+j):i+j).applyNormalMatrix(matrix));normal.normalize();}
       const color = o.material.color.clone().multiply(instanceColor).multiplyScalar(.5 + Math.max(0, normal.dot(light)) * .65);
       triangles.push({ points: points.map(p => p.clone().project(camera)), depth: points.reduce((s, p) => s + p.distanceTo(camera.position), 0), color: color.getStyle(), map:o.material.map?.image, uv:texcoord?[0,1,2].map(j=>{const k=index?index.getX(i+j):i+j;return [texcoord.getX(k),texcoord.getY(k)];}):null });
     }

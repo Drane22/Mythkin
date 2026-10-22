@@ -1,0 +1,25 @@
+/* Shared with the page controls; never replaced by a creature's pigment. */
+.mk-ritual {
+  position: absolute; inset: 6px; z-index: 3; overflow: hidden; border-radius: inherit;
+  pointer-events: none; color: var(--summon-ink, #d5b7e5);
+  animation: mk-ritual-envelope var(--mk-ritual-duration) cubic-bezier(.25,1,.5,1) both;
+}
+.mk-ritual-drawing { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mk-ritual-halo {
+  position: absolute; inset: 12%; border-radius: 50%; opacity: .10;
+  background: radial-gradient(ellipse, transparent 30%, currentColor 60%, transparent 72%);
+}
+.mk-ritual-orbit, .mk-ritual-mark { transform-box: fill-box; transform-origin: center; }
+.mk-ritual-orbit { opacity: .34; animation: mk-ritual-orbit var(--mk-ritual-duration) cubic-bezier(.22,1,.36,1) both; }
+.mk-ritual-mark { opacity: .7; animation: mk-ritual-mark var(--mk-ritual-duration) cubic-bezier(.22,1,.36,1) both; }
+.mk-ritual-label {
+  position: absolute; bottom: 7%; left: 0; width: 100%; text-align: center;
+  font-family: "DM Sans", sans-serif; font-size: 11px; letter-spacing: .08em; color: #d5c7df;
+}
+@keyframes mk-ritual-envelope { 0% { opacity: 0; } 12%,68% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mk-ritual-orbit { from { transform: rotate(-12deg) scale(.94); } to { transform: rotate(12deg) scale(1.02); } }
+@keyframes mk-ritual-mark { from { transform: scale(.94); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .mk-ritual, .mk-ritual * { animation: none; }
+  .mk-ritual-drawing, .mk-ritual-halo { display: none; }
+}

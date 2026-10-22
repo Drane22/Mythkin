@@ -1,4 +1,4 @@
-export const GENERATION_VERSION = 2;
+export const GENERATION_VERSION = 3;
 
 export type MythologyId =
   | "greek"
@@ -135,6 +135,7 @@ export interface IdlePersonality {
 }
 
 export interface MonsterGenotype {
+  v3?: import('../creatures/types').V3Profile;
   visual?: import("./visualTypes").VisualProfile;
   version: number;
   seed: string;

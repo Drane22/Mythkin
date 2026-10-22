@@ -1,10 +1,11 @@
+// V2 regression coverage: v3 catalog and composition have their own suites.
 import './register-typescript.mjs';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {writeFileSync} from 'node:fs';
 import {createCanvas} from '@napi-rs/canvas';
 import {renderMesh} from './render-mesh.mjs';
-const {generateMonster}=await import('../src/generator/generateMonster.ts');
+const {generateMonster}=await import('../src/generator/generateMonsterV2.ts');
 const {buildMonster}=await import('../src/monster/buildMonster.ts');
 const samples=new Map();
 for(let i=0;samples.size<9&&i<10000;i++){const g=generateMonster(`head-review-${i}`);if(g.anatomy.horns!=='antlers'&&!g.anatomy.mutations.includes('skeletal_face')&&!samples.has(g.anatomy.head))samples.set(g.anatomy.head,g);}

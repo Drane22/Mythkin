@@ -1,9 +1,10 @@
+// V2 regression coverage: v3 catalog and composition have their own suites.
 import './register-typescript.mjs';
 import assert from 'node:assert/strict';
 import {createCanvas} from '@napi-rs/canvas';
 import {writeFileSync} from 'node:fs';
 import {renderMesh} from './render-mesh.mjs';
-const {generateMonster}=await import('../src/generator/generateMonster.ts');
+const {generateMonster}=await import('../src/generator/generateMonsterV2.ts');
 const {buildMonster}=await import('../src/monster/buildMonster.ts');
 const {applyAnimation}=await import('../src/monster/animate.ts');
 const {paintBackground}=await import('../src/monster/background.ts');

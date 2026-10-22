@@ -4,6 +4,8 @@ import { MYTHOLOGIES } from '../generator/mythology';
 import { MUTATION_LABELS } from '../generator/generateIdentity';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { Icon } from './Icon';
+import { SPECIES_BY_ID } from '../creatures/catalog/index';
+import { HABITATS } from '../environments/index';
 
 interface Props {
   genotype: MonsterGenotype;
@@ -19,6 +21,12 @@ export function WhyModal({ genotype: g, onClose }: Props) {
   const secondary = g.mythology.secondary ? MYTHOLOGIES[g.mythology.secondary] : undefined;
   const borrowed = g.anatomy.borrowed;
   const rows: [string, string][] = [
+    ...(g.v3 ? [
+      ['Creature', SPECIES_BY_ID[g.v3.primaryId].label],
+      ['Preserved features', g.v3.anchors.join(' · ').replace(/-/g,' ')],
+      ['Influence', g.v3.secondaryId ? `${SPECIES_BY_ID[g.v3.secondaryId].label}: ${g.v3.contributions.filter(c=>c.role==='secondary').map(c=>c.feature.replace(/-/g,' ')).join(', ')}` : 'Single lineage'],
+      ['Habitat', HABITATS[g.v3.habitat as keyof typeof HABITATS]?.label ?? g.v3.habitat],
+    ] as [string,string][] : []),
     ['Origin', primary.label.toUpperCase()],
     ['Secondary', secondary ? `${secondary.label.toUpperCase()}${borrowed.length ? ` (${borrowed.join(', ')})` : ''}` : 'NONE'],
     ['Shape', `${g.anatomy.body.toUpperCase()} BODY · ${g.anatomy.head.toUpperCase()} HEAD`],

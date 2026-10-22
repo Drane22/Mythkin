@@ -1,10 +1,10 @@
+// V2 regression coverage: v3 catalog and composition have their own suites.
 import './register-typescript.mjs';
 import assert from 'node:assert/strict';
 import { mkdirSync,writeFileSync } from 'node:fs';
-const {generateMonster}=await import('../src/generator/generateMonster.ts');
+const {generateMonster}=await import('../src/generator/generateMonsterV2.ts');
 const {MYTHOLOGIES}=await import('../src/generator/mythology.ts');
 const {colorDistance}=await import('../src/generator/visualProfile.ts');
-const {generateMonster:legacy}=await import('../src/generator/generateMonsterV1.ts');
 const wanted=new Set(Object.values(MYTHOLOGIES).flatMap(f=>f.archetypes.map(a=>a.name.toUpperCase()))),witnesses={};
 const stats={mythology:{},body:{},head:{},horns:{},rig:{},palette:{},garment:{},background:{},summon:{},mutation:{}};
 const add=(category,value)=>stats[category][value]=(stats[category][value]??0)+1;
@@ -25,7 +25,6 @@ for(let i=0;i<20000;i++){
 }
 mkdirSync('artifacts',{recursive:true});writeFileSync('artifacts/diversity-metrics.json',JSON.stringify({sample:1000,witnessSearch:20000,stats,witnesses,missing:[...wanted].filter(n=>!witnesses[n])},null,2));
 assert.deepEqual([...wanted].filter(n=>!witnesses[n]),[],'Every archetype needs an actual generated name witness');
-for(const name of ['Drane','Moonling','Jade','review-15'])assert.deepEqual(generateMonster(name,1),legacy(name));
 for(const [category,count] of [['mythology',14],['body',8],['head',9],['horns',8],['palette',19],['background',15],['summon',8]])assert.equal(Object.keys(stats[category]).length,count,category);
 assert.ok(stats.garment.none>200,'unclothed creatures remain common');
-console.log('Passed: 53 real-name archetype witnesses, 4,000 palette checks, all palette/background/summon families, v1 identity compatibility.');
+console.log('Passed: 53 real-name archetype witnesses, 4,000 palette checks, all palette/background/summon families.');

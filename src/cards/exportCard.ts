@@ -23,7 +23,7 @@ const BODY = '"DM Sans", sans-serif';
 const RARITY_COLORS: Record<Rarity, string> = { COMMON: '#c8c3d5', UNCOMMON: '#b8d6af', RARE: '#a9cafa', MYTHIC: '#dfbd79', FORBIDDEN: '#df9ebe' };
 
 function drawPixelImage(ctx: CanvasRenderingContext2D, image: HTMLCanvasElement, rect: Rect, fill = false) {
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = image.width > 320;
   const ratio = fill ? Math.max(rect.w / image.width, rect.h / image.height) : Math.min(rect.w / image.width, rect.h / image.height);
   const scale = fill && ratio >= 1 ? Math.ceil(ratio) : ratio;
   const w = image.width * scale, h = image.height * scale;

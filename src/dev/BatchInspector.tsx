@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { generateMonster } from '../generator/generateMonster';
 import { buildMonster } from '../monster/buildMonster';
 import { applyAnimation } from '../monster/animate';
+import { applyAnimationV3 } from '../motion/v3';
 import { paintBackground } from '../monster/background';
 import { MonsterCanvas } from '../monster/MonsterCanvas';
 
@@ -27,7 +28,7 @@ export default function BatchInspector(){
   const next=()=>{
    if(cancelled||index>=batch.length)return;
    const g=batch[index],built=buildMonster(g);scene.add(built.rig.root);
-   applyAnimation(built.rig,g.idle,{assemble:1,time:0,reducedMotion:true});renderer.render(scene,camera);
+   (g.version===3?applyAnimationV3:applyAnimation)(built.rig,g.idle,{assemble:1,time:0,reducedMotion:true});renderer.render(scene,camera);
    paintBackground(ctx,128,160,g);ctx.drawImage(renderer.domElement,0,0);urls.push(canvas.toDataURL('image/webp',.85));
    scene.remove(built.rig.root);built.dispose();index++;
    if(index%8===0||index===batch.length)setImages([...urls]);

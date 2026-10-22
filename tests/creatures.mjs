@@ -1,9 +1,10 @@
+// V2 regression coverage: v3 catalog and composition have their own suites.
 import assert from 'node:assert/strict';
 import './register-typescript.mjs';
-const { generateMonster } = await import('../src/generator/generateMonster.ts');
+const { generateMonster } = await import('../src/generator/generateMonsterV2.ts');
 const { buildMonster } = await import('../src/monster/buildMonster.ts');
 const { applyAnimation } = await import('../src/monster/animate.ts');
-const { initialReaction, pokeReaction, reactionPose, REACTION_DURATION } = await import('../src/monster/reaction.ts');
+const { initialReaction, pokeReaction, reactionPose, REACTION_DURATION, REACTION_KINDS } = await import('../src/monster/reaction.ts');
 let reaction = pokeReaction(initialReaction(), 1, -1);
 assert.equal(reaction.kind, 'guard');
 assert.equal(reaction.direction, -1);
@@ -12,10 +13,14 @@ reaction = pokeReaction(reaction, 1.5, 1);
 assert.equal(reaction.kind, 'feint');
 reaction = pokeReaction(reaction, 2, -1);
 assert.equal(reaction.kind, 'taunt');
-assert.equal(pokeReaction(reaction, 8, 1).kind, 'guard', 'a pause resets the interaction sequence');
+assert.equal(pokeReaction(reaction, 8, 1).kind, 'startle', 'a pause must preserve reaction variety');
+let spaced = initialReaction();
+const repertoire = new Set();
+for (let i=0;i<12;i++) { spaced=pokeReaction(spaced, i*10, 1); repertoire.add(spaced.kind); }
+assert.equal(repertoire.size, REACTION_KINDS.length, 'spaced taps must reach every reaction');
 for (let i = 0; i < 100; i++) reaction = pokeReaction(reaction, 8 + i * 0.3, 1);
 assert.ok(reaction.anger <= 1);
-for (const kind of ['guard', 'feint', 'taunt']) {
+for (const kind of REACTION_KINDS) {
   assert.ok(Object.values(reactionPose({ age: 0, kind, intensity: 1 })).every(v => v === 0));
   assert.ok(Object.values(reactionPose({ age: REACTION_DURATION, kind, intensity: 1 })).every(v => v === 0));
 }
@@ -50,7 +55,7 @@ for (let i = 0; i < 1000; i++) {
     for(const hand of rig.hands) assert.ok(rig.arms.includes(hand.parent),'wrist must stay attached to its arm');
     rig.root.traverse(o => {
       if (!o.isMesh) return;
-      if(o.name!=='summon-pixel-cloud')assert.notEqual(o.geometry.type, 'BoxGeometry', 'anatomy must use curved geometry');
+      if(!['summon-pixel-cloud','summon-glitch-cloud'].includes(o.name))assert.notEqual(o.geometry.type, 'BoxGeometry', 'anatomy must use curved geometry');
       assert.ok(Array.from(o.geometry.attributes.position.array).every(Number.isFinite), 'mesh vertices must be finite');
     });
     for (const assemble of [0, 0.4, 0.9, 1]) {
@@ -69,7 +74,7 @@ for (let i = 0; i < 1000; i++) {
     assert.ok(rig.head.rotation.y > originalYaw);
     applyAnimation(rig, g.idle, { assemble: 1, time: 8, reducedMotion: false });
     assert.deepEqual(snapshot(rig), resting, 'gaze returns to rest');
-    for (const kind of ['guard', 'feint', 'taunt']) {
+    for (const kind of REACTION_KINDS) {
       for (const age of [0, 0.2, 0.6, 0.95, 1.4, 1.8]) {
         applyAnimation(rig, g.idle, { assemble: 1, time: 8, reducedMotion: false, reaction: { age, kind, intensity: 1, anger: 0.7, direction: -1 } });
         assert.ok(snapshot(rig).flat().every(Number.isFinite));
@@ -86,7 +91,7 @@ for (let i = 0; i < 1000; i++) {
   }
 }
 assert.equal(seen.size, 8);
-console.log('Passed: 1,000 combinations; all 8 body types; 100 animated rigs; guard/feint/taunt recovery, input escalation and reduced motion.');
+console.log('Passed: 1,000 combinations; all 8 body types; 100 animated rigs; six distinct reaction recoveries, input escalation and reduced motion.');
 
 const { dragOrbit, isRotationDrag } = await import('../src/monster/orbit.ts');
 assert.equal(isRotationDrag(3, 2), false);

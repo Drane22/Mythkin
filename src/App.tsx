@@ -7,9 +7,11 @@ import { MonsterCanvas, type MonsterCanvasHandle } from './monster/MonsterCanvas
 import { SummonRitual } from './components/SummonRitual';
 import { CardModal } from './components/CardModal';
 import { WhyModal } from './components/WhyModal';
+import { Icon } from './components/Icon';
+import { SPECIES_BY_ID } from './creatures/catalog';
 import { buildShareUrl, clearShareUrl, parseShareUrl, pushShareUrl } from './share/shareUrl';
 import { loadHistory, pushHistory } from './storage/history';
-import { RANDOM_INPUTS } from './data/randomNames';
+import { generateRandomName } from './data/randomNames';
 import { type CardData } from './cards/exportCard';
 import './viewport.css';
 
@@ -31,7 +33,7 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const summonTimer = useRef<number>(0);
   const revealTimer = useRef<number>(0);
-  const previewGenotype = useMemo(() => generateMonster('Moonling'), []);
+  const previewGenotype = useMemo(() => generateMonster('Fenrir named Moonling'), []);
   const toastTimer = useRef<number>(0);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -112,7 +114,11 @@ export default function App() {
     window.setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  const randomName = () => summon(RANDOM_INPUTS[Math.floor(Math.random() * RANDOM_INPUTS.length)]);
+  const randomName = () => summon(generateRandomName(candidate => {
+    if(!genotype?.v3)return true;
+    const next = generateMonster(candidate).v3!;
+    return SPECIES_BY_ID[next.primaryId].form !== SPECIES_BY_ID[genotype.v3.primaryId].form;
+  }));
 
   const buildCardData = (): CardData | null => {
     if (!genotype) return null;
@@ -125,7 +131,7 @@ export default function App() {
   const id = genotype?.identity;
   const myth = genotype ? MYTHOLOGIES[genotype.mythology.primary] : null;
   const myth2 = genotype?.mythology.secondary ? MYTHOLOGIES[genotype.mythology.secondary] : null;
-  const accentStyle = genotype ? ({ '--accent': '#b98aff' } as CSSProperties) : undefined;
+  const accentStyle = genotype ? ({ '--accent': genotype.palette.accent } as CSSProperties) : undefined;
 
   return (
     <div ref={shellRef} className="app-shell viewport-shell" data-phase={phase}>
@@ -145,7 +151,8 @@ export default function App() {
             <h1>What creature<br />hides in your name?</h1>
 
             <form className="summon-form" onSubmit={(event) => { event.preventDefault(); summon(input); }}>
-              <label htmlFor="name" className="sr-only">Your name or nickname</label>
+              <label htmlFor="name" className="input-label">Your name or nickname</label>
+              <div className="summon-input-shell">
               <input
                 ref={inputRef}
                 id="name"
@@ -155,9 +162,10 @@ export default function App() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 className="name-input"
-                placeholder="Your name or nickname"
+                placeholder="Enter a name…"
               />
-              <button type="submit" className="button button-primary" disabled={!input.trim()}>Summon</button>
+              <button type="submit" className="button button-primary" disabled={!input.trim()}>Summon <span><Icon name="arrow-up-right" size={17} /></span></button>
+              </div>
             </form>
 
             <button type="button" onClick={randomName} className="text-button">Surprise me</button>
@@ -172,7 +180,7 @@ export default function App() {
             )}
             </div>
             <aside className="hero-specimen" aria-label="An example Mythkin">
-              <div className="hero-art"><MonsterCanvas genotype={previewGenotype} summonToken={0} showBackground={true} /></div>
+              <div className="hero-art"><MonsterCanvas genotype={previewGenotype} summonToken={0} showBackground /></div>
             </aside>
           </section>
         )}
@@ -184,7 +192,7 @@ export default function App() {
                 {genotype
                   ? <MonsterCanvas ref={canvasRef} genotype={genotype} summonToken={summonToken} onAssembled={onAssembled} showBackground={true} />
                   : <div className="aspect-square w-full" />}
-                <SummonRitual genotype={genotype} visible={phase === 'summoning'} />
+                <SummonRitual key={summonToken} genotype={genotype} visible={phase === 'summoning'} />
               </div>
               <span className="sr-only" role="status">{phase === 'summoning' ? 'Summoning your creature' : ''}</span>
             </div>
@@ -211,8 +219,8 @@ export default function App() {
               )}
             </article>
             <div className="stage-actions" aria-label="Creature actions">
-              <button className="button button-primary" onClick={randomName} disabled={phase === 'summoning'}>Another</button>
-              <button className="button button-secondary" onClick={() => setCardData(buildCardData())} disabled={!revealed}>Share</button>
+              <button className="button button-primary" onClick={() => setCardData(buildCardData())} disabled={!revealed}>Share <span><Icon name="share" size={16} /></span></button>
+              <button className="button button-secondary" onClick={randomName} disabled={phase === 'summoning'}><Icon name="refresh" size={16} /> Another</button>
               <button className="info-button" onClick={() => setWhyOpen(true)} disabled={!revealed} aria-label="Creature information" aria-haspopup="dialog"><span aria-hidden="true">i</span></button>
             </div>
           </section>
