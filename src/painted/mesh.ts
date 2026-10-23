@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import type { PaintedCreature } from './catalog';
 import { deformPoint, skinWeights, type PaintedMotion } from './motion';
+import { portraitRect } from './portrait';
+import { individualMaterial,individualPoint } from './variation';
+import type { Appearance } from '../creatures/types';
 
-export function paintedMesh(art: PaintedCreature, image: HTMLImageElement) {
+export function paintedMesh(art: PaintedCreature, image: HTMLImageElement, appearance?:Appearance) {
   // Extra rows/columns around the eyes preserve painted lids during a blink.
   const xs = new Set(Array.from({ length: 81 }, (_, i) => i / 80));
   const ys = new Set(Array.from({ length: 101 }, (_, i) => i / 100));
@@ -30,14 +33,16 @@ export function paintedMesh(art: PaintedCreature, image: HTMLImageElement) {
   texture.colorSpace = THREE.SRGBColorSpace; texture.minFilter = THREE.LinearMipmapLinearFilter; texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = true; texture.needsUpdate = true;
   const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+  individualMaterial(material,appearance);
   const mesh = new THREE.Mesh(geometry, material); mesh.frustumCulled = false;
-  const out = { x: 0, y: 0 }, scale = .87;
+  const out = { x: 0, y: 0 }, rect = portraitRect(art,2,2.5);
   const update = (motion: PaintedMotion, reveal = 1) => {
     for (const [i, point] of points.entries()) {
       deformPoint(point.x, point.y, point.weights, art.rig, motion, out);
+      individualPoint(point.x,point.y,point.weights,art.rig,appearance,out);
       // Keep a generous margin around hands/horns, preserving the source aspect.
-      positions[i * 3] = (out.x - .5) * 2 * scale;
-      positions[i * 3 + 1] = (.5 - out.y) * 2.5 * scale - .015;
+      positions[i * 3] = rect.x+out.x*rect.w-1;
+      positions[i * 3 + 1] = 1.25-rect.y-out.y*rect.h;
       positions[i * 3 + 2] = 0;
     }
     attribute.needsUpdate = true;

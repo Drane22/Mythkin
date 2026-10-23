@@ -13,7 +13,9 @@
     "test:individuals": "node tests/v3-individuals.mjs",
     "test:surfaces": "node tests/v3-surfaces.mjs",
     "review:browser": "node tests/browser-review.mjs",
-    "review:individuals": "node tests/individuals-review.mjs"
+    "review:individuals": "node tests/individuals-review.mjs",
+    "test:painted": "node tests/painted-motion.mjs && node tests/painted-generation.mjs",
+    "review:painted": "node tests/painted-roster-review.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

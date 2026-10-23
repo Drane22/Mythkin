@@ -5,6 +5,7 @@ import type { PaintedCreature } from './catalog';
 import { paintedMesh } from './mesh';
 import { paintedMotion } from './motion';
 import { paintStage } from './stage';
+import { portraitRect } from './portrait';
 import './painted.css';
 
 const WIDTH = 800, HEIGHT = 1000;
@@ -67,7 +68,7 @@ export const PaintedCanvas = forwardRef<MonsterCanvasHandle, Props>(function Pai
       lastRender = now;
       state.current += (state.target - state.current) * .14;
       const reveal = reduced ? 1 : Math.min(1, Math.max(0, (time - .15) / 1.1));
-      const motion = paintedMotion(time, phase, state.current, time - state.reactionAt, reduced);
+      const motion = paintedMotion(time, phase, state.current, time - state.reactionAt, reduced, art.rig.profile);
       puppet!.update(motion, 1 - (1 - reveal) ** 3);
       renderer!.render(scene!, camera);
       if (reduced || time >= 2.6) finish();
@@ -80,7 +81,7 @@ export const PaintedCanvas = forwardRef<MonsterCanvasHandle, Props>(function Pai
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'low-power' });
         renderer.setPixelRatio(1); renderer.setSize(WIDTH, HEIGHT, false); renderer.setClearColor(0, 0);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        scene = new THREE.Scene(); puppet = paintedMesh(art, image); scene.add(puppet.mesh);
+        scene = new THREE.Scene(); puppet = paintedMesh(art, image, genotype.version===4?genotype.v3?.appearance:undefined); scene.add(puppet.mesh);
         puppet.update(paintedMotion(0, 0, 0, Infinity, true), reduced ? 1 : 0);
         renderer.render(scene, camera);
         captureRef.current = () => {
@@ -94,7 +95,8 @@ export const PaintedCanvas = forwardRef<MonsterCanvasHandle, Props>(function Pai
         // The authored painting remains available on devices without WebGL.
         captureRef.current = () => {
           const out = document.createElement('canvas'); out.width = WIDTH; out.height = HEIGHT;
-          out.getContext('2d')!.drawImage(image, WIDTH * .065, HEIGHT * .071, WIDTH * .87, HEIGHT * .87); return out;
+          const rect=portraitRect(art,WIDTH,HEIGHT);
+          out.getContext('2d')!.drawImage(image, rect.x,rect.y,rect.w,rect.h); return out;
         };
         setStatus('static'); finish();
       }
@@ -115,12 +117,13 @@ export const PaintedCanvas = forwardRef<MonsterCanvasHandle, Props>(function Pai
     state.reactionAt = state.time; setReacting(true);
     window.clearTimeout(reactionTimer.current); reactionTimer.current = window.setTimeout(() => setReacting(false), 1400);
   };
+  const fallbackRect=portraitRect(art,100,125);
   return (
     <div ref={hostRef} className={`monster-canvas painted-canvas aspect-square w-full overflow-hidden ${className ?? ''}`}
       data-art={art.id} data-art-status={status} data-reacting={reacting} role="group" aria-label={`${genotype.identity.generatedName}, an animated painted ${genotype.identity.classification}.`}>
       <canvas ref={backgroundRef} className="painted-background" style={{ opacity: showBackground ? 1 : 0 }} aria-hidden="true" />
       <canvas ref={canvasRef} className="painted-character" style={{ visibility: status === 'ready' ? 'visible' : 'hidden' }} aria-hidden="true" />
-      {status === 'static' && <img src={art.url} className="painted-static" alt="" />}
+      {status === 'static' && <img src={art.url} className="painted-static" style={{left:`${fallbackRect.x}%`,top:`${fallbackRect.y/1.25}%`,width:`${fallbackRect.w}%`,height:`${fallbackRect.h/1.25}%`}} alt="" />}
       {(status === 'ready' || status === 'static') && <button type="button" className="monster-hit-target"
         onPointerMove={event => { if (event.pointerType !== 'touch') { const rect = event.currentTarget.getBoundingClientRect(); interaction.current.target = Math.max(-1, Math.min(1, (event.clientX - rect.left) / rect.width * 2 - 1)); } }}
         onPointerLeave={() => { interaction.current.target = 0; }} onBlur={() => { interaction.current.target = 0; }} onClick={react}

@@ -1,8 +1,8 @@
-# Painted Minotaur
+# Painted folklore production assets
 
-`minotaur.png` is the first production illustration for the user-selected **B: painted folklore** direction. Generated with the built-in image generation tool on 2026-10-23, using the approved comparison board as a style and identity reference. It has a genuine transparent background, 1122 × 1402 pixels. No raster retouching was applied.
+The user selected **B: painted folklore with animation**. The production assets are generated with the built-in image generation tool, using only column B of the approved comparison board for style and the corresponding supplied species reference for identity. Full prompts and generation dates are recorded in `prompts.json`. Genuine transparent alpha is preserved; no raster retouching is applied.
 
-The live app animates this image through the art-specific rig in `../catalog.ts` and the mesh deformation in `../motion.ts`. It is a painted cutout, not a 3D asset. The original user reference images are not bundled.
+Currently implemented: `minotaur.png`, `bakunawa.png`, `leshy.png`, `fenrir.png`, `harpy.png`, `draugr.png` (1122 × 1402 each). The live app animates the paintings through art-specific rigs in `../artworks.ts` and local mesh deformation in `../motion.ts`. These are painted cutouts, not 3D assets. Original user references are not bundled. Each selected image loads separately in production.
 
 ## Generation prompt
 

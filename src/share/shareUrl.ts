@@ -5,7 +5,7 @@ import { normalizeInput, seedHex } from "../generator/rng";
 // The seed identifies the creature; the name is carried so the card can show the input text
 // and so the generator can rebuild it without any database.
 
-const SUPPORTED_VERSIONS = [1, 2, 3];
+const SUPPORTED_VERSIONS = [1, 2, 3, 4];
 
 function b64url(str: string): string {
   const bytes = new TextEncoder().encode(str);

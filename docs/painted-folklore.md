@@ -16,10 +16,20 @@ Inspect the actual mobile and desktop render, including enlarged faces and a seq
 
 The selected direction does not make the existing 50-species library finished. Further art assets and species-specific motion anchors remain required after this specimen is reviewed.
 
-## First-specimen checkpoint
+## Generation decision
 
-Implemented the transparent painted Minotaur in the actual summon screen and landing specimen. Pure Minotaur v3 results use the painted renderer; hybrid and other species continue to use their existing renderer. Authored sprite variation and the remaining species are not complete. This prototype does not replace generation or claim that color/shape variants are newly illustrated.
+The user chose **one species with individual variations** for new summons. Version 4 implements that decision with deterministic species selection, authored species paintings, restrained natural pigment/marking changes and local proportion variation. Different names within one species share the underlying painting; they are not falsely described as separately painted illustrations. Existing version 1–3 shared genotypes remain readable.
 
-Validated: TypeScript; production build; anchored-hoof/chest/blink/reduced-motion checks; unchanged v1/v2 generation and share links; card exports; responsive browser layouts at 360, 390, 768 and 1440 px; actual changing animation pixels; tap response; stable reduced-motion pixels; share preview; no browser runtime exceptions. Captured the live renderer in `artifacts/painted-folklore/minotaur-motion.webm` and desktop/mobile PNGs. Screenshots and the video are local review artifacts, not replacement artwork.
+Version 4 can be explicitly loaded for development review. The default remains version 3 until the complete 50-species painted roster has been authored and checked. Pure covered version 3 species also use the prototype painted renderer during development. Final version routing must be reviewed before enabling the new default.
 
-Review commands: `node tests/painted-motion.mjs`; `node tests/painted-review.mjs` (isolated Chromium CDP on port 9333, app at port 5174, or override `MYTHKIN_REVIEW_URL`).
+## Six-species checkpoint
+
+Implemented Minotaur, Bakunawa, Leshy, Fenrir, Harpy and Draugr. Each has a transparent production painting, authored head/eye/appendage anchors and a suitable motion profile. Materials include fur, scales, fin membrane, bark, moss, feathers, bone, iron, leather and cloth. Named version 4 variants preserve pale horns/bone and avoid garish whole-image tinting. Forty-four paintings and their rigs remain unfinished; this is not a completed release.
+
+Validated against the production preview: all six painted species and three named variants load and animate without runtime/shader errors; only selected artwork is fetched; responsive layouts at 360, 390, 768 and 1440 px; tap response; stable reduced-motion pixels; share preview and card export. TypeScript and the production build pass. Generation checks cover deterministic single-species results, reachability of all 50 species, preserved v1/v2 hashes and supported share versions. Motion checks cover planted feet, local breathing/blinking, bounds and reduced motion. Actual captures are in `artifacts/painted-folklore/roster-live.png`, `minotaur-motion.webm` and desktop/mobile PNGs.
+
+Production paintings are external hashed PNG files beside `dist/index.html`; scripts, styles and fonts remain inlined. **Deploy the entire `dist/` directory**, including the PNGs. Inlining every painting into HTML would make every visit download the entire roster. Production review caught and corrected relative image URL resolution after script inlining.
+
+Next: author and visually inspect Gorgon, Cyclops, Centaur, Troll, World-Serpent and Sphinx, then continue the remaining roster. Before release: require complete asset coverage, review all real renders/motion, choose final legacy routing, enable version 4, update project documentation, run the complete verification, and push to the already-authorized `Drane22/Mythkin` `main`.
+
+Review commands: `npm run test:painted`; `node tests/painted-roster-review.mjs`; `node tests/painted-review.mjs` (isolated Chromium CDP on port 9333, app at port 5174, or override `MYTHKIN_REVIEW_URL` for the production preview).

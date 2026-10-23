@@ -1,6 +1,7 @@
 import { generateMonster as generateV1 } from './generateMonsterV1';
 import { generateMonster as generateV2 } from './generateMonsterV2';
 import { generateMonsterV3 } from '../creatures/generateV3';
+import { generateMonsterV4 } from '../painted/generateV4';
 import { GENERATION_VERSION, type MonsterGenotype } from './types';
 
 export { hsl } from './generateMonsterV2';
@@ -11,6 +12,7 @@ export function generateMonster(rawInput: string, version: number = GENERATION_V
     case 1: return generateV1(rawInput);
     case 2: return generateV2(rawInput);
     case 3: return generateMonsterV3(rawInput);
+    case 4: return generateMonsterV4(rawInput);
     default: throw new Error('Unsupported generation version');
   }
 }

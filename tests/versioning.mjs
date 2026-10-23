@@ -33,7 +33,7 @@ assert.equal(generateMonster('version-dispatch').version, 3);
 assert.deepEqual(generateMonster('version-dispatch'), generateMonster('version-dispatch', 3));
 
 globalThis.window = { location: new URL('https://mythkin.example/?old=1#previous') };
-for (const version of [1, 2, 3]) {
+for (const version of [1, 2, 3, 4]) {
   for (const name of ['Drane', '  Laika  ', '', 'L\u00e9a']) {
     const url = buildShareUrl(name, version);
     window.location = new URL(url);
@@ -47,7 +47,7 @@ for (const version of [1, 2, 3]) {
 }
 window.location = new URL(buildShareUrl('new-default'));
 assert.equal(parseShareUrl().version, 3);
-for (const version of [0, -1, 4, 1.5, NaN, Infinity]) {
+for (const version of [0, -1, 5, 1.5, NaN, Infinity]) {
   assert.throws(() => generateMonster('invalid', version), /Unsupported generation version/);
   assert.throws(() => buildShareUrl('invalid', version), /Unsupported generation version/);
   const url = new URL(buildShareUrl('invalid', 3));
