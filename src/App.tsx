@@ -33,7 +33,7 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const summonTimer = useRef<number>(0);
   const revealTimer = useRef<number>(0);
-  const previewGenotype = useMemo(() => generateMonster('Fenrir named Moonling'), []);
+  const previewGenotype = useMemo(() => generateMonster('Minotaur'), []);
   const toastTimer = useRef<number>(0);
   const shellRef = useRef<HTMLDivElement>(null);
 

@@ -9,6 +9,8 @@ import { pointerGaze, easeGaze } from './gaze';
 import { dragOrbit, isRotationDrag, portraitDistance } from './orbit';
 import { paintBackground } from './background';
 import { paintAtmosphere } from './atmosphere';
+import { paintedCreature } from '../painted/catalog';
+import { PaintedCanvas } from '../painted/PaintedCanvas';
 
 export const RENDER_RES = 256;
 const DETAIL_RES = 640;
@@ -22,7 +24,7 @@ export interface MonsterCanvasHandle {
   captureBackground: () => HTMLCanvasElement | null;
 }
 
-interface Props {
+export interface MonsterCanvasProps {
   genotype: MonsterGenotype;
   /** bump this to replay the summon assembly */
   summonToken: number;
@@ -34,7 +36,7 @@ interface Props {
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 
-export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function MonsterCanvas(
+const ProceduralMonsterCanvas = forwardRef<MonsterCanvasHandle, MonsterCanvasProps>(function ProceduralMonsterCanvas(
   { genotype, summonToken, onAssembled, showBackground = true, className },
   ref,
 ) {
@@ -268,4 +270,9 @@ export const MonsterCanvas = forwardRef<MonsterCanvasHandle, Props>(function Mon
       {webglError && <div className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center font-mono text-xl uppercase tracking-widest text-neutral-300">Your browser could not open the summoning circle. The creature still exists — its name, title and lore are below.</div>}
     </div>
   );
+});
+
+export const MonsterCanvas = forwardRef<MonsterCanvasHandle, MonsterCanvasProps>(function MonsterCanvas(props, ref) {
+  const art = paintedCreature(props.genotype);
+  return art ? <PaintedCanvas {...props} art={art} ref={ref} /> : <ProceduralMonsterCanvas {...props} ref={ref} />;
 });

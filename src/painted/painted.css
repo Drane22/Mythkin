@@ -1,0 +1,8 @@
+.painted-canvas { position: relative; background: #1b1720; isolation: isolate; }
+.painted-background, .painted-character { position: absolute; inset: 0; width: 100%; height: 100%; }
+.painted-character { image-rendering: auto; }
+.painted-canvas .monster-hit-target { cursor: pointer; touch-action: pan-y; }
+.painted-static { position: absolute; left: 6.5%; top: 7.1%; width: 87%; height: 87%; object-fit: fill; }
+.painted-error { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 24px; color: #e9d9ec; }
+.painted-error p { margin: 0; }
+.painted-error .button { min-height: 44px; }
